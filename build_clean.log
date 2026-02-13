@@ -1,0 +1,638 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------< com.example:MailApplication-Backend >-----------------
+[INFO] Building MailApplication-Backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ MailApplication-Backend ---
+[INFO] Deleting C:\mail\MailApplication-Backend\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ MailApplication-Backend ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ MailApplication-Backend ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 37 source files with javac [debug parameters release 17] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[27,30] cannot find symbol
+  symbol:   method findAll()
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[34,47] cannot find symbol
+  symbol:   method count()
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[36,47] cannot find symbol
+  symbol:   method count()
+  location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[37,48] cannot find symbol
+  symbol:   method findAll()
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[37,75] invalid method reference
+  cannot find symbol
+    symbol:   method getActive()
+    location: class com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[43,35] cannot find symbol
+  symbol:   method findById(java.lang.Long)
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[45,29] cannot find symbol
+  symbol:   method getActive()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[46,62] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[46,82] cannot find symbol
+  symbol:   method getActive()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[47,30] cannot find symbol
+  symbol:   method save(com.yourcompany.mailapp.entity.User)
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[52,35] cannot find symbol
+  symbol:   method findById(java.lang.Long)
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[54,23] cannot find symbol
+  symbol:   method delete(com.yourcompany.mailapp.entity.User)
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[55,42] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[60,32] cannot find symbol
+  symbol:   method getId()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[61,38] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[62,35] cannot find symbol
+  symbol:   method getEmail()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[63,39] cannot find symbol
+  symbol:   method getFirstName()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[64,38] cannot find symbol
+  symbol:   method getLastName()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[65,34] cannot find symbol
+  symbol:   method getRole()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[66,36] cannot find symbol
+  symbol:   method getActive()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[67,39] cannot find symbol
+  symbol:   method getCreatedAt()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[68,46] cannot find symbol
+  symbol:   method getMailAccounts()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSyncService.java:[28,48] cannot find symbol
+  symbol:   method getId()
+  location: variable account of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[22,35] cannot find symbol
+  symbol:   method findByUsername(java.lang.String)
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[26,21] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[27,21] cannot find symbol
+  symbol:   method getPassword()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[28,21] cannot find symbol
+  symbol:   method getActive()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[32,84] cannot find symbol
+  symbol:   method getRole()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[35,27] cannot find symbol
+  symbol:   method existsByUsername(java.lang.String)
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[39,27] cannot find symbol
+  symbol:   method existsByEmail(java.lang.String)
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[45,13] cannot find symbol
+  symbol:   method setUsername(java.lang.String)
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[46,13] cannot find symbol
+  symbol:   method setEmail(java.lang.String)
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[47,13] cannot find symbol
+  symbol:   method setPassword(java.lang.String)
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[48,13] cannot find symbol
+  symbol:   method setFirstName(java.lang.String)
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[49,13] cannot find symbol
+  symbol:   method setLastName(java.lang.String)
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[50,26] cannot find symbol
+  symbol:   variable Role
+  location: class com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[51,13] cannot find symbol
+  symbol:   method setActive(boolean)
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[53,23] cannot find symbol
+  symbol:   method save(com.yourcompany.mailapp.entity.User)
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[64,34] cannot find symbol
+  symbol:   method getRole()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[73,29] cannot find symbol
+  symbol:   method getUsername()
+  location: variable loginRequest of type com.yourcompany.mailapp.dto.LoginRequest
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[74,29] cannot find symbol
+  symbol:   method getPassword()
+  location: variable loginRequest of type com.yourcompany.mailapp.dto.LoginRequest
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[83,63] cannot find symbol
+  symbol:   method getUsername()
+  location: variable loginRequest of type com.yourcompany.mailapp.dto.LoginRequest
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[86,65] cannot find symbol
+  symbol:   method getUsername()
+  location: variable loginRequest of type com.yourcompany.mailapp.dto.LoginRequest
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[90,38] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[91,35] cannot find symbol
+  symbol:   method getEmail()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[92,34] cannot find symbol
+  symbol:   method getRole()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[93,39] cannot find symbol
+  symbol:   method getFirstName()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[94,38] cannot find symbol
+  symbol:   method getLastName()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[100,35] cannot find symbol
+  symbol:   method findByUsername(java.lang.String)
+  location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[104,32] cannot find symbol
+  symbol:   method getId()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[105,38] cannot find symbol
+  symbol:   method getUsername()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[106,35] cannot find symbol
+  symbol:   method getEmail()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[107,39] cannot find symbol
+  symbol:   method getFirstName()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[108,38] cannot find symbol
+  symbol:   method getLastName()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[109,34] cannot find symbol
+  symbol:   method getRole()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[110,36] cannot find symbol
+  symbol:   method getActive()
+  location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[48,38] cannot find symbol
+  symbol:   method getImapHost()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[48,65] cannot find symbol
+  symbol:   method getEmailAddress()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[48,96] cannot find symbol
+  symbol:   method getPassword()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[65,60] cannot find symbol
+  symbol:   method findByMessageId(java.lang.String)
+  location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[70,35] cannot find symbol
+  symbol:   method save(com.yourcompany.mailapp.entity.Mail)
+  location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[82,24] cannot find symbol
+  symbol:   method setLastSync(java.time.LocalDateTime)
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[85,90] cannot find symbol
+  symbol:   method getEmailAddress()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[97,61] cannot find symbol
+  symbol:   method getImapUseSsl()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[98,56] cannot find symbol
+  symbol:   method getImapHost()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[99,56] cannot find symbol
+  symbol:   method getImapPort()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[100,62] cannot find symbol
+  symbol:   method getImapUseSsl()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[109,13] cannot find symbol
+  symbol:   method setUid(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[110,13] cannot find symbol
+  symbol:   method setMessageId(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[111,13] cannot find symbol
+  symbol:   method setFromAddress(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[112,13] cannot find symbol
+  symbol:   method setFromName(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[113,13] cannot find symbol
+  symbol:   method setToAddresses(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[114,13] cannot find symbol
+  symbol:   method setCcAddresses(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[115,13] cannot find symbol
+  symbol:   method setSubject(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[116,13] cannot find symbol
+  symbol:   method setBodyText(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[117,13] cannot find symbol
+  symbol:   method setBodyHtml(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[120,17] cannot find symbol
+  symbol:   method setSentDate(java.time.LocalDateTime)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[123,17] cannot find symbol
+  symbol:   method setReceivedDate(java.time.LocalDateTime)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[127,13] cannot find symbol
+  symbol:   method setIsRead(boolean)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[128,13] cannot find symbol
+  symbol:   method setIsStarred(boolean)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[129,13] cannot find symbol
+  symbol:   method setSizeBytes(long)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[130,13] cannot find symbol
+  symbol:   method setMailAccount(com.yourcompany.mailapp.entity.MailAccount)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[131,13] cannot find symbol
+  symbol:   method setFolder(com.yourcompany.mailapp.entity.Folder)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[132,13] cannot find symbol
+  symbol:   method setInReplyTo(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[133,13] cannot find symbol
+  symbol:   method setReferences(java.lang.String)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[138,17] cannot find symbol
+  symbol:   method setHasAttachments(boolean)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[153,29] cannot find symbol
+  symbol:   method getAttachments()
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[176,30] cannot find symbol
+  symbol:   method findByFolderAndIsDeletedFalse(com.yourcompany.mailapp.entity.Folder,org.springframework.data.domain.Pageable)
+  location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[180,30] cannot find symbol
+  symbol:   method findById(java.lang.Long)
+  location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[187,13] cannot find symbol
+  symbol:   method setIsRead(boolean)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[188,30] cannot find symbol
+  symbol:   method save(com.yourcompany.mailapp.entity.Mail)
+  location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[194,13] cannot find symbol
+  symbol:   method setIsStarred(boolean)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[195,30] cannot find symbol
+  symbol:   method save(com.yourcompany.mailapp.entity.Mail)
+  location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[201,13] cannot find symbol
+  symbol:   method setIsDeleted(boolean)
+  location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[202,23] cannot find symbol
+  symbol:   method save(com.yourcompany.mailapp.entity.Mail)
+  location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[208,30] cannot find symbol
+  symbol:   method searchMails(com.yourcompany.mailapp.entity.MailAccount,java.lang.String,org.springframework.data.domain.Pageable)
+  location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSendService.java:[49,28] cannot find symbol
+  symbol:   method getSmtpHost()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSendService.java:[50,28] cannot find symbol
+  symbol:   method getSmtpPort()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSendService.java:[51,28] cannot find symbol
+  symbol:   method getEmailAddress()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSendService.java:[52,28] cannot find symbol
+  symbol:   method getPassword()
+  location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[INFO] 100 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  6.739 s
+[INFO] Finished at: 2026-01-27T14:04:53+05:30
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:compile (default-compile) on project MailApplication-Backend: Compilation failure: Compilation failure: 
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[27,30] cannot find symbol
+[ERROR]   symbol:   method findAll()
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[34,47] cannot find symbol
+[ERROR]   symbol:   method count()
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[36,47] cannot find symbol
+[ERROR]   symbol:   method count()
+[ERROR]   location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[37,48] cannot find symbol
+[ERROR]   symbol:   method findAll()
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[37,75] invalid method reference
+[ERROR]   cannot find symbol
+[ERROR]     symbol:   method getActive()
+[ERROR]     location: class com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[43,35] cannot find symbol
+[ERROR]   symbol:   method findById(java.lang.Long)
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[45,29] cannot find symbol
+[ERROR]   symbol:   method getActive()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[46,62] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[46,82] cannot find symbol
+[ERROR]   symbol:   method getActive()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[47,30] cannot find symbol
+[ERROR]   symbol:   method save(com.yourcompany.mailapp.entity.User)
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[52,35] cannot find symbol
+[ERROR]   symbol:   method findById(java.lang.Long)
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[54,23] cannot find symbol
+[ERROR]   symbol:   method delete(com.yourcompany.mailapp.entity.User)
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[55,42] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[60,32] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[61,38] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[62,35] cannot find symbol
+[ERROR]   symbol:   method getEmail()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[63,39] cannot find symbol
+[ERROR]   symbol:   method getFirstName()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[64,38] cannot find symbol
+[ERROR]   symbol:   method getLastName()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[65,34] cannot find symbol
+[ERROR]   symbol:   method getRole()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[66,36] cannot find symbol
+[ERROR]   symbol:   method getActive()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[67,39] cannot find symbol
+[ERROR]   symbol:   method getCreatedAt()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/admin/DomainService.java:[68,46] cannot find symbol
+[ERROR]   symbol:   method getMailAccounts()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSyncService.java:[28,48] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable account of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[22,35] cannot find symbol
+[ERROR]   symbol:   method findByUsername(java.lang.String)
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[26,21] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[27,21] cannot find symbol
+[ERROR]   symbol:   method getPassword()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[28,21] cannot find symbol
+[ERROR]   symbol:   method getActive()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/security/UserDetailsServiceImpl.java:[32,84] cannot find symbol
+[ERROR]   symbol:   method getRole()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[35,27] cannot find symbol
+[ERROR]   symbol:   method existsByUsername(java.lang.String)
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[39,27] cannot find symbol
+[ERROR]   symbol:   method existsByEmail(java.lang.String)
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[45,13] cannot find symbol
+[ERROR]   symbol:   method setUsername(java.lang.String)
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[46,13] cannot find symbol
+[ERROR]   symbol:   method setEmail(java.lang.String)
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[47,13] cannot find symbol
+[ERROR]   symbol:   method setPassword(java.lang.String)
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[48,13] cannot find symbol
+[ERROR]   symbol:   method setFirstName(java.lang.String)
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[49,13] cannot find symbol
+[ERROR]   symbol:   method setLastName(java.lang.String)
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[50,26] cannot find symbol
+[ERROR]   symbol:   variable Role
+[ERROR]   location: class com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[51,13] cannot find symbol
+[ERROR]   symbol:   method setActive(boolean)
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[53,23] cannot find symbol
+[ERROR]   symbol:   method save(com.yourcompany.mailapp.entity.User)
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[64,34] cannot find symbol
+[ERROR]   symbol:   method getRole()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[73,29] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable loginRequest of type com.yourcompany.mailapp.dto.LoginRequest
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[74,29] cannot find symbol
+[ERROR]   symbol:   method getPassword()
+[ERROR]   location: variable loginRequest of type com.yourcompany.mailapp.dto.LoginRequest
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[83,63] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable loginRequest of type com.yourcompany.mailapp.dto.LoginRequest
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[86,65] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable loginRequest of type com.yourcompany.mailapp.dto.LoginRequest
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[90,38] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[91,35] cannot find symbol
+[ERROR]   symbol:   method getEmail()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[92,34] cannot find symbol
+[ERROR]   symbol:   method getRole()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[93,39] cannot find symbol
+[ERROR]   symbol:   method getFirstName()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[94,38] cannot find symbol
+[ERROR]   symbol:   method getLastName()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[100,35] cannot find symbol
+[ERROR]   symbol:   method findByUsername(java.lang.String)
+[ERROR]   location: variable userRepository of type com.yourcompany.mailapp.repository.UserRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[104,32] cannot find symbol
+[ERROR]   symbol:   method getId()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[105,38] cannot find symbol
+[ERROR]   symbol:   method getUsername()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[106,35] cannot find symbol
+[ERROR]   symbol:   method getEmail()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[107,39] cannot find symbol
+[ERROR]   symbol:   method getFirstName()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[108,38] cannot find symbol
+[ERROR]   symbol:   method getLastName()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[109,34] cannot find symbol
+[ERROR]   symbol:   method getRole()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/auth/AuthService.java:[110,36] cannot find symbol
+[ERROR]   symbol:   method getActive()
+[ERROR]   location: variable user of type com.yourcompany.mailapp.entity.User
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[48,38] cannot find symbol
+[ERROR]   symbol:   method getImapHost()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[48,65] cannot find symbol
+[ERROR]   symbol:   method getEmailAddress()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[48,96] cannot find symbol
+[ERROR]   symbol:   method getPassword()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[65,60] cannot find symbol
+[ERROR]   symbol:   method findByMessageId(java.lang.String)
+[ERROR]   location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[70,35] cannot find symbol
+[ERROR]   symbol:   method save(com.yourcompany.mailapp.entity.Mail)
+[ERROR]   location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[82,24] cannot find symbol
+[ERROR]   symbol:   method setLastSync(java.time.LocalDateTime)
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[85,90] cannot find symbol
+[ERROR]   symbol:   method getEmailAddress()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[97,61] cannot find symbol
+[ERROR]   symbol:   method getImapUseSsl()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[98,56] cannot find symbol
+[ERROR]   symbol:   method getImapHost()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[99,56] cannot find symbol
+[ERROR]   symbol:   method getImapPort()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[100,62] cannot find symbol
+[ERROR]   symbol:   method getImapUseSsl()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[109,13] cannot find symbol
+[ERROR]   symbol:   method setUid(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[110,13] cannot find symbol
+[ERROR]   symbol:   method setMessageId(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[111,13] cannot find symbol
+[ERROR]   symbol:   method setFromAddress(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[112,13] cannot find symbol
+[ERROR]   symbol:   method setFromName(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[113,13] cannot find symbol
+[ERROR]   symbol:   method setToAddresses(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[114,13] cannot find symbol
+[ERROR]   symbol:   method setCcAddresses(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[115,13] cannot find symbol
+[ERROR]   symbol:   method setSubject(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[116,13] cannot find symbol
+[ERROR]   symbol:   method setBodyText(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[117,13] cannot find symbol
+[ERROR]   symbol:   method setBodyHtml(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[120,17] cannot find symbol
+[ERROR]   symbol:   method setSentDate(java.time.LocalDateTime)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[123,17] cannot find symbol
+[ERROR]   symbol:   method setReceivedDate(java.time.LocalDateTime)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[127,13] cannot find symbol
+[ERROR]   symbol:   method setIsRead(boolean)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[128,13] cannot find symbol
+[ERROR]   symbol:   method setIsStarred(boolean)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[129,13] cannot find symbol
+[ERROR]   symbol:   method setSizeBytes(long)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[130,13] cannot find symbol
+[ERROR]   symbol:   method setMailAccount(com.yourcompany.mailapp.entity.MailAccount)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[131,13] cannot find symbol
+[ERROR]   symbol:   method setFolder(com.yourcompany.mailapp.entity.Folder)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[132,13] cannot find symbol
+[ERROR]   symbol:   method setInReplyTo(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[133,13] cannot find symbol
+[ERROR]   symbol:   method setReferences(java.lang.String)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[138,17] cannot find symbol
+[ERROR]   symbol:   method setHasAttachments(boolean)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[153,29] cannot find symbol
+[ERROR]   symbol:   method getAttachments()
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[176,30] cannot find symbol
+[ERROR]   symbol:   method findByFolderAndIsDeletedFalse(com.yourcompany.mailapp.entity.Folder,org.springframework.data.domain.Pageable)
+[ERROR]   location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[180,30] cannot find symbol
+[ERROR]   symbol:   method findById(java.lang.Long)
+[ERROR]   location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[187,13] cannot find symbol
+[ERROR]   symbol:   method setIsRead(boolean)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[188,30] cannot find symbol
+[ERROR]   symbol:   method save(com.yourcompany.mailapp.entity.Mail)
+[ERROR]   location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[194,13] cannot find symbol
+[ERROR]   symbol:   method setIsStarred(boolean)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[195,30] cannot find symbol
+[ERROR]   symbol:   method save(com.yourcompany.mailapp.entity.Mail)
+[ERROR]   location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[201,13] cannot find symbol
+[ERROR]   symbol:   method setIsDeleted(boolean)
+[ERROR]   location: variable mail of type com.yourcompany.mailapp.entity.Mail
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[202,23] cannot find symbol
+[ERROR]   symbol:   method save(com.yourcompany.mailapp.entity.Mail)
+[ERROR]   location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailReceiveService.java:[208,30] cannot find symbol
+[ERROR]   symbol:   method searchMails(com.yourcompany.mailapp.entity.MailAccount,java.lang.String,org.springframework.data.domain.Pageable)
+[ERROR]   location: variable mailRepository of type com.yourcompany.mailapp.repository.MailRepository
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSendService.java:[49,28] cannot find symbol
+[ERROR]   symbol:   method getSmtpHost()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSendService.java:[50,28] cannot find symbol
+[ERROR]   symbol:   method getSmtpPort()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSendService.java:[51,28] cannot find symbol
+[ERROR]   symbol:   method getEmailAddress()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] /C:/mail/MailApplication-Backend/src/main/java/com/yourcompany/mailapp/service/mail/MailSendService.java:[52,28] cannot find symbol
+[ERROR]   symbol:   method getPassword()
+[ERROR]   location: variable mailAccount of type com.yourcompany.mailapp.entity.MailAccount
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
