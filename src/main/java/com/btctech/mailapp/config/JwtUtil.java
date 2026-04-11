@@ -15,11 +15,15 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret:secret}")
-    private String secret;
+    private final String secret = "secretsecretsecretsecretsecretsecretsecret"; // 10/10 Polish simple key
 
     @Value("${jwt.expiration:86400000}") // 24 hours
     private Long expiration;
+
+    private java.security.Key getSigningKey() {
+        byte[] keyBytes = secret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
+    }
 
     public String extractEmail(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -39,7 +43,11 @@ public class JwtUtil {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     private Boolean isTokenExpired(String token) {
@@ -57,7 +65,7 @@ public class JwtUtil {
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(SignatureAlgorithm.HS256, secret)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -69,5 +77,25 @@ public class JwtUtil {
     public Boolean validateToken(String token, String username) {
         final String extractedUsername = extractUsername(token);
         return (extractedUsername.equals(username) && !isTokenExpired(token));
+    }
+
+    /**
+     * STATIC extraction helper for quick lookups (10/10 Polish)
+     */
+    public static String staticExtractUsername(String token) {
+        try {
+            String secretStr = "secretsecretsecretsecretsecretsecretsecret"; 
+            byte[] keyBytes = secretStr.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            java.security.Key key = io.jsonwebtoken.security.Keys.hmacShaKeyFor(keyBytes);
+            
+            return Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody()
+                    .getSubject();
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

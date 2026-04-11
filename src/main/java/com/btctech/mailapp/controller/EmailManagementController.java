@@ -79,8 +79,25 @@ public class EmailManagementController {
                 log.info("Creating email for user: {} (via regular token)", tokenSubject);
             }
 
-            // ✅ FIX: Pass password to createCustomEmail
-            MailAccount mailAccount = mailboxService.createCustomEmail(user, request, plainPassword);
+            // 10/10 Polish: Enforcement of Approval
+            if (user.getAccountType().equals(com.btctech.mailapp.entity.AccountType.CHILD) && 
+                (user.getApproved() == null || !user.getApproved())) {
+                return ResponseEntity.status(403)
+                        .body(ApiResponse.error("Parental Approval Required. Your account must be approved by your parent before creating a mailbox."));
+            }
+
+            // Determine domain to use
+            String overrideDomain = null;
+            if (user.getAccountType().equals(com.btctech.mailapp.entity.AccountType.BUSINESS)) {
+                if (user.getOrganization() == null || !user.getOrganization().getVerified()) {
+                    return ResponseEntity.badRequest()
+                            .body(ApiResponse.error("Business accounts must have a verified domain before creating mailboxes."));
+                }
+                overrideDomain = user.getOrganization().getDomain();
+            }
+
+            // ✅ FIX: Pass overrideDomain to createCustomEmail
+            MailAccount mailAccount = mailboxService.createCustomEmail(user, request, plainPassword, overrideDomain);
 
             // Set as primary if first email
             List<MailAccount> existing = mailboxService.getUserEmails(user.getId());

@@ -49,8 +49,12 @@ public class AuthController {
         Map<String, Object> data = new HashMap<>();
         data.put("userId", user.getId());
         data.put("username", user.getUsername());
+        data.put("accountType", user.getAccountType());
+        data.put("organizationId", user.getOrganization() != null ? user.getOrganization().getId() : null);
         data.put("tempToken", tempToken);
-        data.put("message", "Registration successful! Now create your email address.");
+        data.put("message", "Registration successful! " + 
+                (user.getAccountType().equals(com.btctech.mailapp.entity.AccountType.BUSINESS) ? 
+                        "Now initialize your domain verification." : "Now create your email address."));
 
         return ResponseEntity.ok(
                 ApiResponse.success(data, "User registered successfully"));
@@ -86,6 +90,8 @@ public class AuthController {
         data.put("username", user.getUsername());
         data.put("firstName", user.getFirstName());
         data.put("lastName", user.getLastName());
+        data.put("accountType", user.getAccountType());
+        data.put("role", user.getRole());
 
         return ResponseEntity.ok(
                 ApiResponse.success(data, "Login successful"));

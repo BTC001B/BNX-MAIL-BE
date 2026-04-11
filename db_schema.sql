@@ -3,22 +3,64 @@ CREATE DATABASE IF NOT EXISTS mail_app_db CHARACTER SET utf8mb4 COLLATE utf8mb4_
 USE mail_app_db;
 
 -- ==========================================
+-- TABLE 0: ORGANIZATIONS (For Business Accounts)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS organizations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    domain VARCHAR(255) UNIQUE NOT NULL,
+    verification_token VARCHAR(100) NULL,
+    verified BOOLEAN DEFAULT FALSE,
+    created_by BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_domain (domain)
+) ENGINE=InnoDB;
+
+-- ==========================================
 -- TABLE 1: USERS (Application users with JWT auth)
 -- ==========================================
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NULL,
     password VARCHAR(255) NOT NULL,
     first_name VARCHAR(50),
     last_name VARCHAR(50),
     role VARCHAR(20) DEFAULT 'USER',
+    account_type VARCHAR(20) DEFAULT 'PUBLIC',
+    organization_id BIGINT NULL,
+    parent_user_id BIGINT NULL,
+    dob DATE NULL,
     active BOOLEAN DEFAULT TRUE,
+    approved BOOLEAN DEFAULT TRUE,
+    approved_by BIGINT NULL,
+    approved_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL,
+    FOREIGN KEY (parent_user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_username (username),
-    INDEX idx_email (email)
+    INDEX idx_email (email),
+    INDEX idx_org (organization_id),
+    INDEX idx_parent (parent_user_id)
+) ENGINE=InnoDB;
+
+-- ==========================================
+-- TABLE: ORGANIZATION_INVITES
+-- ==========================================
+CREATE TABLE IF NOT EXISTS organization_invites (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    organization_id BIGINT NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    invite_token VARCHAR(255) UNIQUE NOT NULL,
+    role VARCHAR(50) DEFAULT 'ORG_USER',
+    expires_at TIMESTAMP NOT NULL,
+    accepted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    INDEX idx_token (invite_token)
 ) ENGINE=InnoDB;
 
 -- ==========================================
@@ -37,6 +79,8 @@ CREATE TABLE IF NOT EXISTS mail_accounts (
     imap_port INT DEFAULT 993,
     is_default BOOLEAN DEFAULT FALSE,
     active BOOLEAN DEFAULT TRUE,
+    storage_limit BIGINT DEFAULT 1073741824,
+    storage_used BIGINT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
@@ -58,6 +102,41 @@ CREATE TABLE IF NOT EXISTS folders (
     FOREIGN KEY (mail_account_id) REFERENCES mail_accounts(id) ON DELETE CASCADE,
     FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE,
     INDEX idx_account (mail_account_id)
+) ENGINE=InnoDB;
+
+-- ==========================================
+-- TABLE: MAIL_DRAFTS (Unsent email compositions)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS mail_drafts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    mail_account_id BIGINT NOT NULL,
+    to_address TEXT,
+    cc_address TEXT,
+    bcc_address TEXT,
+    subject VARCHAR(255),
+    body LONGTEXT,
+    is_html BOOLEAN DEFAULT FALSE,
+    last_opened_at TIMESTAMP NULL,
+    attachments_json LONGTEXT NULL,
+    status VARCHAR(20) DEFAULT 'DRAFT',
+    failure_reason TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (mail_account_id) REFERENCES mail_accounts(id) ON DELETE CASCADE,
+    INDEX idx_draft_account (mail_account_id)
+) ENGINE=InnoDB;
+
+-- ==========================================
+-- TABLE 4: DRAFT COLLABORATORS (Team Shared)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS mail_draft_collaborators (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    draft_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    permission VARCHAR(20) NOT NULL, -- VIEW, EDIT, SEND
+    FOREIGN KEY (draft_id) REFERENCES mail_drafts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_draft_user (draft_id, user_id)
 ) ENGINE=InnoDB;
 
 -- ==========================================

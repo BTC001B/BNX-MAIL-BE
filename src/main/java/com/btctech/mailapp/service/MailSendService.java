@@ -23,8 +23,6 @@ public class MailSendService {
     @Value("${mail.smtp.port}")
     private int smtpPort;
     
-    private final SessionService sessionService;
-    
     /**
      * Send email - Password retrieved from session automatically
      */
@@ -52,7 +50,7 @@ public class MailSendService {
             log.debug("SMTP Config: host={}, port={}", smtpHost, smtpPort);
             
             // Create session with authentication
-            Session session = Session.getInstance(props, new Authenticator() {
+            Session session = Session.getInstance(props, new jakarta.mail.Authenticator() {
                 @Override
                 protected PasswordAuthentication getPasswordAuthentication() {
                     log.debug("Authenticating as: {}", fromEmail);
@@ -80,11 +78,40 @@ public class MailSendService {
             
             message.setSubject(request.getSubject());
             
-            // Set body (HTML or plain text)
-            if (request.getIsHtml() != null && request.getIsHtml()) {
-                message.setContent(request.getBody(), "text/html; charset=utf-8");
+            // Handle Multipart (Body + Attachments)
+            if (request.getAttachments() != null && !request.getAttachments().isEmpty()) {
+                Multipart multipart = new jakarta.mail.internet.MimeMultipart();
+
+                // 1. Add Text/HTML Body Part
+                jakarta.mail.internet.MimeBodyPart messageBodyPart = new jakarta.mail.internet.MimeBodyPart();
+                if (request.getIsHtml() != null && request.getIsHtml()) {
+                    messageBodyPart.setContent(request.getBody(), "text/html; charset=utf-8");
+                } else {
+                    messageBodyPart.setText(request.getBody(), "utf-8");
+                }
+                multipart.addBodyPart(messageBodyPart);
+
+                // 2. Add Attachments
+                for (com.btctech.mailapp.dto.AttachmentInfo attachment : request.getAttachments()) {
+                    jakarta.mail.internet.MimeBodyPart attachPart = new jakarta.mail.internet.MimeBodyPart();
+                    try {
+                        attachPart.attachFile(new java.io.File(attachment.getFilePath()));
+                        attachPart.setFileName(attachment.getFileName());
+                        multipart.addBodyPart(attachPart);
+                    } catch (java.io.IOException ex) {
+                        log.error("Failed to attach file: {}", attachment.getFileName());
+                        // Continue sending even if one attachment fails
+                    }
+                }
+
+                message.setContent(multipart);
             } else {
-                message.setText(request.getBody(), "utf-8");
+                // Standard single-part message
+                if (request.getIsHtml() != null && request.getIsHtml()) {
+                    message.setContent(request.getBody(), "text/html; charset=utf-8");
+                } else {
+                    message.setText(request.getBody(), "utf-8");
+                }
             }
             
             // Send message

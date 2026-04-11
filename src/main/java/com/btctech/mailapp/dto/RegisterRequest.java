@@ -13,4 +13,15 @@ public class RegisterRequest {
 
     private String firstName;
     private String lastName;
+
+    @NotBlank(message = "Account type is required")
+    private String accountType; // PUBLIC, BUSINESS, CHILD
+
+    // Business fields
+    private String companyName;
+    private String domain;
+
+    // Child fields
+    private String parentEmail;
+    private java.time.LocalDate dob;
 }

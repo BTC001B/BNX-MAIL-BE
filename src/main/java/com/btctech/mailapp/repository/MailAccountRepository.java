@@ -13,4 +13,8 @@ public interface MailAccountRepository extends JpaRepository<MailAccount, Long> 
     Optional<MailAccount> findByUserIdAndIsPrimary(Long userId, Boolean isPrimary);
 
     boolean existsByEmail(String email);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("UPDATE MailAccount m SET m.storageUsed = m.storageUsed + :bytesToAdd WHERE m.id = :accountId")
+    void updateStorageUsed(Long accountId, long bytesToAdd);
 }

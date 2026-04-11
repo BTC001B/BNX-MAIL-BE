@@ -38,6 +38,12 @@ public class MailAccount {
 
     private Boolean active = true;
 
+    @Column(name = "storage_limit")
+    private long storageLimit = 1073741824L; // 1GB default
+
+    @Column(name = "storage_used")
+    private long storageUsed = 0L;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 

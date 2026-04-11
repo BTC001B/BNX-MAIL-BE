@@ -34,9 +34,10 @@ public class MailboxService {
      * Create custom email with automatic mailbox creation
      */
     @Transactional
-    public MailAccount createCustomEmail(User user, CreateEmailRequest request, String plainPassword) {
+    public MailAccount createCustomEmail(User user, CreateEmailRequest request, String plainPassword, String overrideDomain) {
         try {
-            log.info("Creating email for user: {}, email_name: {}", user.getUsername(), request.getEmailName());
+            log.info("Creating email for user: {}, email_name: {}, domain: {}", 
+                user.getUsername(), request.getEmailName(), overrideDomain != null ? overrideDomain : mailDomain);
             
             // ✅ LOG THE BASE PATH BEING USED
             log.info("Using base path: {}", basePath);
@@ -44,11 +45,26 @@ public class MailboxService {
             // Validate
             validateEmailName(request.getEmailName());
             
-            // Get domain
-            Domain domain = domainRepository.findByDomain(mailDomain)
-                    .orElseThrow(() -> new MailException("Domain not found: " + mailDomain));
-            
-            String fullEmail = request.getEmailName() + "@" + mailDomain;
+            // Determine domain to use
+            String activeDomain = (overrideDomain != null) ? overrideDomain : mailDomain;
+
+            // Get domain record (or handle business domain differently if it's not in 'domains' table yet)
+            // For now, let's look it up or create a placeholder if it's a business domain
+            Long domainId = 1L; // Default
+            try {
+                Domain domain = domainRepository.findByDomain(activeDomain)
+                        .orElseGet(() -> {
+                            Domain newDomain = new Domain();
+                            newDomain.setDomain(activeDomain);
+                            // Removing setCreatedBy as it's not in the entity
+                            return domainRepository.save(newDomain);
+                        });
+                domainId = domain.getId();
+            } catch (Exception e) {
+                log.warn("Could not find/create Domain record for {}, using placeholder", activeDomain);
+            }
+
+            String fullEmail = request.getEmailName() + "@" + activeDomain;
             
             // Check if email exists
             if (mailAccountRepository.existsByEmail(fullEmail)) {
@@ -56,12 +72,12 @@ public class MailboxService {
             }
             
             // ✅ CONSTRUCT PATH USING basePath FROM CONFIG
-            String maildirPath = basePath + "/" + mailDomain + "/" + request.getEmailName();
+            String maildirPath = basePath + "/" + activeDomain + "/" + request.getEmailName();
             
             log.info("Maildir path will be: {}", maildirPath);
             
             // Create mailbox on filesystem
-            boolean created = createMailboxDirectory(request.getEmailName());
+            boolean created = createMailboxDirectory(request.getEmailName(), activeDomain);
             if (!created) {
                 throw new MailException("Failed to create mailbox directory");
             }
@@ -72,12 +88,23 @@ public class MailboxService {
             // Create database record
             MailAccount mailAccount = new MailAccount();
             mailAccount.setUserId(user.getId());
-            mailAccount.setDomainId(domain.getId());
+            mailAccount.setDomainId(domainId); // ✅ Using domainId from above
             mailAccount.setEmailName(request.getEmailName());
             mailAccount.setEmail(fullEmail);
             mailAccount.setMaildirPath(maildirPath); // ✅ USING CONSTRUCTED PATH
             mailAccount.setPassword(storedPassword);
-            mailAccount.setQuota(0L);
+            
+            // Set Quota based on AccountType
+            long limitInBytes = 1073741824L; // 1GB (Public)
+            if (com.btctech.mailapp.entity.AccountType.BUSINESS.equals(user.getAccountType())) {
+                limitInBytes = 53687091200L; // 50GB (Business)
+            } else if (com.btctech.mailapp.entity.AccountType.CHILD.equals(user.getAccountType())) {
+                limitInBytes = 524288000L; // 500MB (Child)
+            }
+            mailAccount.setStorageLimit(limitInBytes);
+            mailAccount.setStorageUsed(0L);
+            mailAccount.setQuota(limitInBytes); // Keeping legacy quota field in sync
+            
             mailAccount.setIsPrimary(false);
             mailAccount.setActive(true);
             
@@ -105,14 +132,14 @@ public class MailboxService {
     /**
      * Create mailbox directory structure
      */
-    private boolean createMailboxDirectory(String emailName) {
+    private boolean createMailboxDirectory(String emailName, String activeDomain) {
         try {
             // ✅ USE basePath FROM CONFIG
-            String fullPath = basePath + "/" + mailDomain + "/" + emailName + "/Maildir";
+            String fullPath = basePath + "/" + activeDomain + "/" + emailName + "/Maildir";
             
             log.info("Creating mailbox directory: {}", fullPath);
             
-            File maildirBase = new File(basePath + "/" + mailDomain + "/" + emailName);
+            File maildirBase = new File(basePath + "/" + activeDomain + "/" + emailName);
             File maildir = new File(fullPath);
             File newDir = new File(maildir, "new");
             File curDir = new File(maildir, "cur");

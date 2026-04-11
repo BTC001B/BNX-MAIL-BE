@@ -24,4 +24,6 @@ public class SendMailRequest {
     private String body;
 
     private Boolean isHtml = false;
+
+    private java.util.List<AttachmentInfo> attachments;
 }
