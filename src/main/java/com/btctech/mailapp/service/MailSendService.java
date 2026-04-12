@@ -40,10 +40,9 @@ public class MailSendService {
             Properties props = new Properties();
             props.put("mail.smtp.host", smtpHost);
             props.put("mail.smtp.port", String.valueOf(smtpPort));
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.starttls.required", "true");
-            props.put("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
+            props.put("mail.smtp.auth", "false"); // Local Postfix on 127.0.0.1 — no auth needed
+            props.put("mail.smtp.starttls.enable", "false"); // No TLS for localhost
+            props.put("mail.smtp.ssl.trust", "*");
             props.put("mail.smtp.timeout", "10000"); // 10 seconds
             props.put("mail.smtp.connectiontimeout", "10000");
             

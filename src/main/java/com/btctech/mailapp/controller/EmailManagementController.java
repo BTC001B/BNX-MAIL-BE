@@ -58,8 +58,8 @@ public class EmailManagementController {
                 plainPassword = request.getPassword();
                 
                 if (plainPassword == null || plainPassword.isEmpty()) {
-                    log.info("No password provided in Step 2, reusing credentials from Step 1 for user: {}", username);
-                    plainPassword = user.getPassword(); // Reuses the hash
+                    log.error("Password missing in Step 2 for user: {}. Automatic reuse of hashed registration password is NOT supported as it breaks IMAP/SMTP encryption.", username);
+                    throw new com.btctech.mailapp.exception.MailException("A plain-text password is required for initial mailbox setup to ensure secure IMAP/SMTP encryption. Please provide your registration password.");
                 }
                 
                 log.info("Creating email for user: {} (via temp token)", username);

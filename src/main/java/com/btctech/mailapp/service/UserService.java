@@ -5,6 +5,8 @@ import com.btctech.mailapp.dto.RegisterRequest;
 import com.btctech.mailapp.entity.User;
 import com.btctech.mailapp.exception.MailException;
 import com.btctech.mailapp.repository.UserRepository;
+import com.btctech.mailapp.repository.MailAccountRepository;
+import com.btctech.mailapp.entity.MailAccount;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,19 +25,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MailAccountRepository mailAccountRepository;
     private final Map<String, RegistrationStrategy> registrationStrategies;
 
     @Autowired
     public UserService(UserRepository userRepository, 
                        PasswordEncoder passwordEncoder,
+                       MailAccountRepository mailAccountRepository,
                        List<RegistrationStrategy> strategies) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.mailAccountRepository = mailAccountRepository;
         this.registrationStrategies = strategies.stream()
                 .collect(Collectors.toMap(RegistrationStrategy::getMode, Function.identity()));
     }
@@ -139,6 +143,32 @@ public class UserService {
         } else {
             return getUserByUsername(identifier);
         }
+    }
+
+    /**
+     * ATOMIC: Update both User and Mail Account passwords
+     */
+    @Transactional
+    public void updateUserPassword(User user, String newPlainPassword) {
+        log.info("Performing atomic password update for user: {}", user.getUsername());
+        
+        // 1. Update User password (Hashed for Spring Auth)
+        String userHash = passwordEncoder.encode(newPlainPassword);
+        user.setPassword(userHash);
+        userRepository.save(user);
+        
+        // 2. Update all associated MailAccount passwords (Hashed with {BLF-CRYPT} for Dovecot)
+        String dovecotHash = "{BLF-CRYPT}" + userHash; // BCrypt hash is the same, just prefix it
+        
+        List<MailAccount> accounts = mailAccountRepository.findByUserId(user.getId());
+        for (MailAccount account : accounts) {
+            log.debug("Updating mail account: {}", account.getEmail());
+            account.setPassword(dovecotHash);
+            mailAccountRepository.save(account);
+        }
+        
+        log.info("✓ Atomic password update complete for {} ({} mailboxes updated)", 
+            user.getUsername(), accounts.size());
     }
 
     /**

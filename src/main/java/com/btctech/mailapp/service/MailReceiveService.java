@@ -43,6 +43,7 @@ public class MailReceiveService {
             props.put("mail.imap.port", String.valueOf(imapPort));
             props.put("mail.imap.ssl.enable", "true");
             props.put("mail.imap.ssl.protocols", "TLSv1.2 TLSv1.3");
+            props.put("mail.imap.ssl.trust", "*"); // Trust all certificates for local dev
             props.put("mail.imap.connectiontimeout", "10000");
             props.put("mail.imap.timeout", "10000");
 
@@ -242,6 +243,7 @@ public class MailReceiveService {
             props.put("mail.imap.host", imapHost);
             props.put("mail.imap.port", String.valueOf(imapPort));
             props.put("mail.imap.ssl.enable", "true");
+            props.put("mail.imap.ssl.trust", "*"); // Trust all certificates for local dev
 
             Session session = Session.getInstance(props);
             store = session.getStore("imap");
@@ -283,6 +285,7 @@ public class MailReceiveService {
             props.put("mail.imap.port", String.valueOf(imapPort));
             props.put("mail.imap.ssl.enable", "true");
             props.put("mail.imap.ssl.protocols", "TLSv1.2 TLSv1.3");
+            props.put("mail.imap.ssl.trust", "*"); // Trust all certificates for local dev
             props.put("mail.imap.connectiontimeout", "10000");
             props.put("mail.imap.timeout", "10000");
 

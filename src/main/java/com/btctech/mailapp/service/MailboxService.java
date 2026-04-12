@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import java.io.File;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class MailboxService {
     
     private final MailAccountRepository mailAccountRepository;
     private final DomainRepository domainRepository;
+    private final PasswordEncoder passwordEncoder;
     
     @Value("${mail.domain}")
     private String mailDomain;
@@ -82,8 +84,8 @@ public class MailboxService {
                 throw new MailException("Failed to create mailbox directory");
             }
             
-            // Store PLAIN password (for Postfix/Dovecot)
-            String storedPassword = plainPassword;
+            // Store HASHED password (for Postfix/Dovecot) with {BLF-CRYPT} prefix
+            String storedPassword = "{BLF-CRYPT}" + passwordEncoder.encode(plainPassword);
             
             // Create database record
             MailAccount mailAccount = new MailAccount();
@@ -153,8 +155,10 @@ public class MailboxService {
                 new File(maildir, "." + folder + "/tmp").mkdirs();
             }
             
-            // Change ownership using system command
-            try {
+            // Change ownership using system command (Linux only)
+            String os = System.getProperty("os.name").toLowerCase();
+            if (!os.contains("mac")) {
+                try {
                 String[] chownCmd = {"chown", "-R", "vmail:vmail", maildirBase.getAbsolutePath()};
                 Process process = Runtime.getRuntime().exec(chownCmd);
                 int exitCode = process.waitFor();
@@ -164,15 +168,19 @@ public class MailboxService {
                 } else {
                     log.warn("⚠ Could not change ownership (exit code: {})", exitCode);
                 }
-            } catch (Exception e) {
-                log.warn("⚠ Could not change ownership: {}", e.getMessage());
+                } catch (Exception e) {
+                    log.warn("⚠ Could not change ownership: {}", e.getMessage());
+                }
+            } else {
+                log.info("ℹ Skipping chown on Mac environment");
             }
             
             // Set permissions
             try {
-                String[] chmodCmd = {"chmod", "-R", "700", maildirBase.getAbsolutePath()};
-                Process process = Runtime.getRuntime().exec(chmodCmd);
-                process.waitFor();
+                maildirBase.setReadable(true, false);
+                maildirBase.setWritable(true, false);
+                maildirBase.setExecutable(true, false);
+                log.info("✓ Set directory permissions via Java API");
             } catch (Exception e) {
                 log.warn("⚠ Could not set permissions: {}", e.getMessage());
             }
