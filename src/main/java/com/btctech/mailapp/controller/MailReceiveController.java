@@ -170,8 +170,16 @@ public class MailReceiveController {
         } catch (Throwable e) {
             String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
             log.error("CRITICAL error fetching starred emails for {}: {}", userEmail, e.getMessage(), e);
+            
+            // Temporary verbose error for remote debugging
+            String stackTrace = java.util.Arrays.toString(e.getStackTrace());
+            String debugMessage = String.format("[%s] %s | Stack: %s", 
+                e.getClass().getSimpleName(), 
+                e.getMessage(), 
+                stackTrace.substring(0, Math.min(stackTrace.length(), 200)));
+
             return ResponseEntity.status(500)
-                    .body(ApiResponse.error("Failed to fetch starred emails: " + e.getMessage()));
+                    .body(ApiResponse.error("Debug Error: " + debugMessage));
         }
     }
 
@@ -206,8 +214,16 @@ public class MailReceiveController {
         } catch (Throwable e) {
             String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
             log.error("CRITICAL error toggling star status for UID {} in folder {} for {}: {}", uid, folder, userEmail, e.getMessage(), e);
+            
+            // Temporary verbose error for remote debugging
+            String stackTrace = java.util.Arrays.toString(e.getStackTrace());
+            String debugMessage = String.format("[%s] %s | Stack: %s", 
+                e.getClass().getSimpleName(), 
+                e.getMessage(), 
+                stackTrace.substring(0, Math.min(stackTrace.length(), 200)));
+
             return ResponseEntity.status(500)
-                    .body(ApiResponse.error("Failed to toggle star status: " + e.getMessage()));
+                    .body(ApiResponse.error("Debug Error: " + debugMessage));
         }
     }
 

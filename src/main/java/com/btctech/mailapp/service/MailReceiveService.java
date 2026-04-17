@@ -1,9 +1,12 @@
 package com.btctech.mailapp.service;
 
+import com.btctech.mailapp.entity.StarredEmail;
+import com.btctech.mailapp.repository.StarredEmailRepository;
 import com.btctech.mailapp.dto.EmailDTO;
 import com.btctech.mailapp.exception.MailException;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.search.FlagTerm;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +29,8 @@ public class MailReceiveService {
 
     @Value("${mail.imap.port}")
     private int imapPort;
+
+    private final StarredEmailRepository starredEmailRepository;
 
     /**
      * Common method to fetch emails from a specific folder
@@ -69,7 +74,7 @@ public class MailReceiveService {
             List<EmailDTO> emails = new ArrayList<>();
             for (int i = messages.length - 1; i >= 0; i--) {
                 try {
-                    emails.add(convertToDTO(messages[i], uidFolder));
+                    emails.add(convertToDTO(messages[i], uidFolder, email));
                 } catch (Exception e) {
                     log.warn("Failed to parse message in {}: {}", folderName, e.getMessage());
                 }
@@ -98,83 +103,66 @@ public class MailReceiveService {
     }
 
     public List<EmailDTO> getStarred(String email, String password, int limit) {
-        log.info("Fetching starred messages for: {}", email);
-        Store store = null;
-        Folder folder = null;
+        log.info("Fetching starred messages from local DB for: {}", email);
+        
+        // 1. Get starred mappings from DB
+        List<StarredEmail> starredMappings = starredEmailRepository.findByUserEmail(email);
+        if (starredMappings.isEmpty()) return new ArrayList<>();
 
+        Store store = null;
         try {
             store = connect(email, password);
-
-            folder = store.getFolder("INBOX");
-            folder.open(Folder.READ_ONLY);
-
-            UIDFolder uidFolder = (folder instanceof UIDFolder) ? (UIDFolder) folder : null;
-            if (uidFolder == null) {
-                log.warn("INBOX does not support persistent UIDs, falling back to message numbers for Starred feature.");
-            }
-
-            Message[] messages = folder.search(new FlagTerm(new Flags(Flags.Flag.FLAGGED), true));
-            if (messages == null) {
-                log.info("No starred messages found for {}", email);
-                return new ArrayList<>();
-            }
-
-            List<EmailDTO> emails = new ArrayList<>();
-            int count = 0;
-            for (int i = messages.length - 1; i >= 0 && count < limit; i--) {
+            List<EmailDTO> starredEmails = new ArrayList<>();
+            
+            // 2. Fetch messages from IMAP using UIDs stored in DB
+            for (StarredEmail mapping : starredMappings) {
                 try {
-                    emails.add(convertToDTO(messages[i], uidFolder));
-                    count++;
+                    Folder f = store.getFolder(mapping.getFolderName());
+                    if (f.exists()) {
+                        if (!f.isOpen()) f.open(Folder.READ_ONLY);
+                        
+                        if (f instanceof UIDFolder) {
+                            UIDFolder uidFolder = (UIDFolder) f;
+                            Message msg = uidFolder.getMessageByUID(Long.parseLong(mapping.getUid()));
+                            if (msg != null) {
+                                EmailDTO dto = convertToDTO(msg, uidFolder, email);
+                                dto.setStarred(true); 
+                                starredEmails.add(dto);
+                            }
+                        }
+                    }
                 } catch (Exception e) {
-                    log.warn("Failed to parse starred message: {}", e.getMessage());
+                    log.warn("Failed to fetch starred email for UID {} in {}: {}", mapping.getUid(), mapping.getFolderName(), e.getMessage());
                 }
             }
-            return emails;
+            return starredEmails;
         } catch (MessagingException e) {
-            log.error("Failed to fetch starred emails: {}", e.getMessage(), e);
-            throw new MailException("Failed to fetch starred emails: " + e.getMessage());
+            log.error("Failed to connect for starred emails: {}", e.getMessage());
+            throw new MailException("Failed to fetch starred emails.");
         } finally {
-            cleanup(store, folder);
+            cleanup(store, null);
         }
     }
 
+    @Transactional
     public void toggleStar(String email, String password, String folderName, String uid) {
-        log.info("Toggling star for email UID {} in folder {}", uid, folderName);
-        Store store = null;
-        Folder folder = null;
-
-        try {
-            store = connect(email, password);
-
-            String actualFolderName = folderName;
-            if ("Sent".equalsIgnoreCase(folderName)) actualFolderName = resolveSentFolderName(store);
-            else if ("Trash".equalsIgnoreCase(folderName)) actualFolderName = resolveTrashFolderName(store);
-
-            folder = store.getFolder(actualFolderName);
-            folder.open(Folder.READ_WRITE);
-
-            if (!(folder instanceof UIDFolder)) {
-                throw new MailException("Folder " + actualFolderName + " does not support persistent UIDs.");
-            }
-            UIDFolder uidFolder = (UIDFolder) folder;
-            
-            long numericUid = Long.parseLong(uid);
-            Message message = uidFolder.getMessageByUID(numericUid);
-            
-            if (message == null) {
-                throw new MailException("Email with UID " + uid + " no longer exists in " + actualFolderName);
-            }
-            
-            boolean currentStatus = message.isSet(Flags.Flag.FLAGGED);
-            message.setFlag(Flags.Flag.FLAGGED, !currentStatus);
-            
-            log.info("Successfully toggled star for UID {}. New status: {}", uid, !currentStatus);
-
-        } catch (Exception e) {
-            log.error("Failed to toggle star for UID {}: {}", uid, e.getMessage(), e);
-            throw new MailException("Failed to toggle star: " + e.getMessage());
-        } finally {
-            cleanup(store, folder);
+        log.info("Toggling star for email UID {} in folder {} from local DB mapping", uid, folderName);
+        String normalizedFolder = folderName.toUpperCase();
+        
+        var existing = starredEmailRepository.findByUserEmailAndUidAndFolderName(email, uid, normalizedFolder);
+        
+        if (existing.isPresent()) {
+            starredEmailRepository.deleteByUserEmailAndUidAndFolderName(email, uid, normalizedFolder);
+            log.info("Successfully UNSTARRED UID {} in {}", uid, normalizedFolder);
+        } else {
+            StarredEmail star = StarredEmail.builder()
+                .userEmail(email)
+                .uid(uid)
+                .folderName(normalizedFolder)
+                .starredAt(java.time.LocalDateTime.now())
+                .build();
+            starredEmailRepository.save(star);
+            log.info("Successfully STARRED UID {} in {}", uid, normalizedFolder);
         }
     }
 
@@ -369,7 +357,7 @@ public class MailReceiveService {
                 throw new MailException("Email with UID " + uid + " not found");
             }
 
-            return convertToDTO(message, uidInbox);
+            return convertToDTO(message, uidInbox, email);
         } catch (Exception e) {
             log.error("Failed to fetch email details: {}", e.getMessage());
             throw new MailException("Failed to fetch email: " + e.getMessage());
@@ -422,15 +410,17 @@ public class MailReceiveService {
         return "Sent";
     }
 
-    private EmailDTO convertToDTO(Message message, UIDFolder uidFolder) throws MessagingException, IOException {
+    private EmailDTO convertToDTO(Message message, UIDFolder uidFolder, String userEmail) throws MessagingException, IOException {
         EmailDTO dto = new EmailDTO();
         
+        String uidStr;
         // Use persistent UID if available, fallback to message number
         if (uidFolder != null) {
-            dto.setUid(String.valueOf(uidFolder.getUID(message)));
+            uidStr = String.valueOf(uidFolder.getUID(message));
         } else {
-            dto.setUid(String.valueOf(message.getMessageNumber()));
+            uidStr = String.valueOf(message.getMessageNumber());
         }
+        dto.setUid(uidStr);
 
         Address[] from = message.getFrom();
         if (from != null && from.length > 0) dto.setFrom(((InternetAddress) from[0]).getAddress());
@@ -440,7 +430,14 @@ public class MailReceiveService {
         dto.setSentDate(message.getSentDate());
         dto.setReceivedDate(message.getReceivedDate());
         dto.setRead(message.isSet(Flags.Flag.SEEN));
-        dto.setStarred(message.isSet(Flags.Flag.FLAGGED));
+        
+        // Use Database mapping for star status
+        String folderName = "INBOX";
+        if (uidFolder != null && uidFolder instanceof Folder) {
+            folderName = ((Folder) uidFolder).getName().toUpperCase();
+        }
+        dto.setStarred(starredEmailRepository.existsByUserEmailAndUidAndFolderName(userEmail, uidStr, folderName));
+
         dto.setSize(message.getSize());
         String[] content = extractContent(message);
         dto.setBody(content[0]);
