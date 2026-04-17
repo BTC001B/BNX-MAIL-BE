@@ -53,7 +53,7 @@ Registers a new user account with automatic role assignment.
   "registrationNumber": "GST123456",
   "ownerFirstName": "Siva",
   "ownerLastName": "Kumar",
-  "domain": "btctech.shop"
+  "domain": "bnxmail.com"
 }
 ```
 **Auto-Logic**: Creates an Organization and a Business Profile automatically.
@@ -67,7 +67,7 @@ Authenticates and establishes a session.
 - **Body**:
 ```json
 {
-  "email": "siva@btctech.shop",
+  "email": "siva@bnxmail.com",
   "password": "SecurePassword123"
 }
 ```
@@ -103,7 +103,7 @@ Allocates an actual mailbox on the server.
   "emails": [
     {
       "id": 1,
-      "email": "siva@btctech.shop",
+      "email": "siva@bnxmail.com",
       "isPrimary": true,
       "active": true
     }
@@ -136,7 +136,7 @@ Allocates an actual mailbox on the server.
 - **Response Data**:
 ```json
 {
-  "email": "siva@btctech.shop",
+  "email": "siva@bnxmail.com",
   "totalCount": 10,
   "unreadCount": 2,
   "emails": [
@@ -156,9 +156,49 @@ Allocates an actual mailbox on the server.
 - **Method**: `GET`
 - **Response**: Returns full `EmailDTO` including body and attachment list.
 
+### 4.4 Get Starred Emails
+Returns only flagged/starred messages from the user's account.
+- **URL**: `/api/mail/starred`
+- **Method**: `GET`
+- **Params**: `limit` (default 50)
+- **Response Data**: Similar structure to `4.2 Get Inbox`.
+
+### 4.5 Toggle Star Status
+Marks an email as important (Starred) or removes the mark.
+- **URL**: `/api/mail/star/{uid}`
+- **Method**: `POST`
+- **Params**: `folder` (default "INBOX")
+- **Response**: Success/Error message.
+
 ---
 
-## 5. Drafts & Collaboration (`/api/mail/drafts`)
+## 5. Trash & Deletion (`/api/mail/trash`)
+
+### 5.1 Get Trash Emails
+- **URL**: `/api/mail/trash`
+- **Method**: `GET`
+- **Params**: `limit` (default 50)
+- **Response**: Returns standard `InboxResponse` with list of deleted emails.
+
+### 5.2 Move to Trash
+- **URL**: `/api/mail/trash/{uid}`
+- **Method**: `POST`
+- **Params**: `folder` (default "INBOX")
+- **Response**: Success message.
+
+### 5.3 Restore from Trash
+- **URL**: `/api/mail/restore/{uid}`
+- **Method**: `POST`
+- **Response**: Success message (moves email back to INBOX).
+
+### 5.4 Permanent Delete
+- **URL**: `/api/mail/permanent/{uid}`
+- **Method**: `DELETE`
+- **Response**: Success message.
+
+---
+
+## 6. Drafts & Collaboration (`/api/mail/drafts`)
 
 ### 5.1 Save/Autosave Draft
 - **URL**: `/api/mail/drafts`
@@ -196,8 +236,8 @@ Allocates an actual mailbox on the server.
 - **Response Data**:
 ```json
 {
-  "verificationToken": "btctech-verify-87623hjb",
-  "dnsInstructions": "Add a TXT record for @ with value btctech-verify-..."
+  "verificationToken": "bnxmail-verify-87623hjb",
+  "dnsInstructions": "Add a TXT record for @ with value bnxmail-verify-..."
 }
 ```
 

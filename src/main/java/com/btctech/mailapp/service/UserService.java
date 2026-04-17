@@ -7,7 +7,6 @@ import com.btctech.mailapp.exception.MailException;
 import com.btctech.mailapp.repository.UserRepository;
 import com.btctech.mailapp.repository.MailAccountRepository;
 import com.btctech.mailapp.entity.MailAccount;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

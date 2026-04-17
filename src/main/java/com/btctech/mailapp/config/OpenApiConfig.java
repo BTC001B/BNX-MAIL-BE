@@ -32,7 +32,7 @@ public class OpenApiConfig {
                         .description("REST API for the BTC Tech Mail Server backend. Supports smart onboarding, secure mailing, and team collaboration.")
                         .contact(new Contact()
                                 .name("BTC Tech Support")
-                                .email("support@btctech.shop"))
+                                .email("support@bnxmail.com"))
                         .license(new License()
                                 .name("Apache 2.0")
                                 .url("http://springdoc.org")));

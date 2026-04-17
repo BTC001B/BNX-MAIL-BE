@@ -50,7 +50,7 @@ public class BusinessService {
         
         Map<String, String> dnsRecords = new HashMap<>();
         dnsRecords.put("TXT", "bnx-verify=" + token);
-        dnsRecords.put("MX", "mail.btctech.shop");
+        dnsRecords.put("MX", "mail.bnxmail.com");
         result.put("dnsRecords", dnsRecords);
 
         return result;

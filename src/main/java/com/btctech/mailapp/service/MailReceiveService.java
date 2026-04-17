@@ -5,6 +5,7 @@ import com.btctech.mailapp.exception.MailException;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.search.FlagTerm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -28,305 +28,528 @@ public class MailReceiveService {
     private int imapPort;
 
     /**
-     * Get inbox emails
+     * Common method to fetch emails from a specific folder
      */
-    public List<EmailDTO> getInbox(String email, String password, int limit) {
-        log.info("Fetching inbox for: {}", email);
+    private List<EmailDTO> getEmailsFromFolder(String email, String password, String folderName, int limit) {
+        log.info("Fetching messages from folder '{}' for: {}", folderName, email);
 
         Store store = null;
-        Folder inbox = null;
+        Folder folder = null;
 
         try {
-            // IMAP Properties
-            Properties props = new Properties();
-            props.put("mail.imap.host", imapHost);
-            props.put("mail.imap.port", String.valueOf(imapPort));
-            props.put("mail.imap.ssl.enable", "true");
-            props.put("mail.imap.ssl.protocols", "TLSv1.2 TLSv1.3");
-            props.put("mail.imap.ssl.trust", "*"); // Trust all certificates for local dev
-            props.put("mail.imap.connectiontimeout", "10000");
-            props.put("mail.imap.timeout", "10000");
+            store = connect(email, password);
 
-            // Create session
-            Session session = Session.getInstance(props);
-
-            // Connect to store
-            store = session.getStore("imap");
-            store.connect(imapHost, imapPort, email, password);
-
-            log.debug("Connected to IMAP server");
-
-            // Open inbox folder
-            inbox = store.getFolder("INBOX");
-            inbox.open(Folder.READ_ONLY);
-
-            int messageCount = inbox.getMessageCount();
-            log.info("Total messages in inbox: {}", messageCount);
-
-            if (messageCount == 0) {
-                return new ArrayList<>();
+            String actualFolderName = folderName;
+            if ("Sent".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveSentFolderName(store);
+            } else if ("Trash".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveTrashFolderName(store);
             }
 
-            // Get messages (most recent first)
+            folder = store.getFolder(actualFolderName);
+            if (!folder.exists()) {
+                log.warn("Folder '{}' does not exist for user {}", actualFolderName, email);
+                return new ArrayList<>();
+            }
+            
+            folder.open(Folder.READ_ONLY);
+
+            if (!(folder instanceof UIDFolder)) {
+                log.error("Folder {} does not support UIDs, falling back to message numbers (NOT RECOMMENDED)", actualFolderName);
+            }
+
+            UIDFolder uidFolder = (folder instanceof UIDFolder) ? (UIDFolder) folder : null;
+            int messageCount = folder.getMessageCount();
+
+            if (messageCount == 0) return new ArrayList<>();
+
             int start = Math.max(1, messageCount - limit + 1);
-            Message[] messages = inbox.getMessages(start, messageCount);
+            Message[] messages = folder.getMessages(start, messageCount);
 
-            // Reverse to get newest first
-            List<Message> messageList = Arrays.asList(messages);
-            List<Message> reversedList = new ArrayList<>(messageList);
-            java.util.Collections.reverse(reversedList);
-
-            // Convert to DTO
             List<EmailDTO> emails = new ArrayList<>();
-            for (Message message : reversedList) {
+            for (int i = messages.length - 1; i >= 0; i--) {
                 try {
-                    EmailDTO emailDTO = convertToDTO(message);
-                    emails.add(emailDTO);
+                    emails.add(convertToDTO(messages[i], uidFolder));
                 } catch (Exception e) {
-                    log.warn("Failed to parse message: {}", e.getMessage());
+                    log.warn("Failed to parse message in {}: {}", folderName, e.getMessage());
                 }
             }
 
-            log.info("Fetched {} emails", emails.size());
             return emails;
 
         } catch (MessagingException e) {
-            log.error("Failed to fetch inbox: {}", e.getMessage(), e);
-            throw new MailException("Failed to fetch inbox: " + e.getMessage());
+            log.error("Failed to fetch folder {}: {}", folderName, e.getMessage(), e);
+            throw new MailException("Failed to fetch " + folderName + ": " + e.getMessage());
         } finally {
-            // Close connections
-            try {
-                if (inbox != null && inbox.isOpen()) {
-                    inbox.close(false);
+            cleanup(store, folder);
+        }
+    }
+
+    public List<EmailDTO> getInbox(String email, String password, int limit) {
+        return getEmailsFromFolder(email, password, "INBOX", limit);
+    }
+
+    public List<EmailDTO> getSent(String email, String password, int limit) {
+        return getEmailsFromFolder(email, password, "Sent", limit);
+    }
+
+    public List<EmailDTO> getTrash(String email, String password, int limit) {
+        return getEmailsFromFolder(email, password, "Trash", limit);
+    }
+
+    public List<EmailDTO> getStarred(String email, String password, int limit) {
+        log.info("Fetching starred messages for: {}", email);
+        Store store = null;
+        Folder folder = null;
+
+        try {
+            store = connect(email, password);
+
+            folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
+
+            if (!(folder instanceof UIDFolder)) {
+                throw new MailException("INBOX does not support UIDs, required for Starred feature.");
+            }
+            UIDFolder uidFolder = (UIDFolder) folder;
+
+            Message[] messages = folder.search(new FlagTerm(new Flags(Flags.Flag.FLAGGED), true));
+            List<EmailDTO> emails = new ArrayList<>();
+            int count = 0;
+            for (int i = messages.length - 1; i >= 0 && count < limit; i--) {
+                try {
+                    emails.add(convertToDTO(messages[i], uidFolder));
+                    count++;
+                } catch (Exception e) {
+                    log.warn("Failed to parse starred message: {}", e.getMessage());
                 }
-                if (store != null) {
-                    store.close();
-                }
-            } catch (MessagingException e) {
-                log.warn("Error closing IMAP connection: {}", e.getMessage());
+            }
+            return emails;
+        } catch (MessagingException e) {
+            log.error("Failed to fetch starred emails: {}", e.getMessage(), e);
+            throw new MailException("Failed to fetch starred emails: " + e.getMessage());
+        } finally {
+            cleanup(store, folder);
+        }
+    }
+
+    public void toggleStar(String email, String password, String folderName, String uid) {
+        log.info("Toggling star for email UID {} in folder {}", uid, folderName);
+        Store store = null;
+        Folder folder = null;
+
+        try {
+            store = connect(email, password);
+
+            String actualFolderName = folderName;
+            if ("Sent".equalsIgnoreCase(folderName)) actualFolderName = resolveSentFolderName(store);
+            else if ("Trash".equalsIgnoreCase(folderName)) actualFolderName = resolveTrashFolderName(store);
+
+            folder = store.getFolder(actualFolderName);
+            folder.open(Folder.READ_WRITE);
+
+            if (!(folder instanceof UIDFolder)) {
+                throw new MailException("Folder " + actualFolderName + " does not support persistent UIDs.");
+            }
+            UIDFolder uidFolder = (UIDFolder) folder;
+            
+            long numericUid = Long.parseLong(uid);
+            Message message = uidFolder.getMessageByUID(numericUid);
+            
+            if (message == null) {
+                throw new MailException("Email with UID " + uid + " no longer exists in " + actualFolderName);
+            }
+            
+            boolean currentStatus = message.isSet(Flags.Flag.FLAGGED);
+            message.setFlag(Flags.Flag.FLAGGED, !currentStatus);
+            
+            log.info("Successfully toggled star for UID {}. New status: {}", uid, !currentStatus);
+
+        } catch (Exception e) {
+            log.error("Failed to toggle star for UID {}: {}", uid, e.getMessage(), e);
+            throw new MailException("Failed to toggle star: " + e.getMessage());
+        } finally {
+            cleanup(store, folder);
+        }
+    }
+
+    public void moveToTrash(String email, String password, String sourceFolderName, String uid) {
+        log.info("Moving email UID {} from {} to Trash for {}", uid, sourceFolderName, email);
+        Store store = null;
+        Folder source = null;
+        Folder trash = null;
+
+        try {
+            store = connect(email, password);
+
+            String trashFolderName = resolveTrashFolderName(store);
+            trash = store.getFolder(trashFolderName);
+            if (!trash.exists()) trash.create(Folder.HOLDS_MESSAGES);
+
+            source = store.getFolder(sourceFolderName);
+            source.open(Folder.READ_WRITE);
+
+            if (!(source instanceof UIDFolder)) {
+                throw new MailException("Source folder " + sourceFolderName + " does not support persistent UIDs.");
+            }
+            UIDFolder uidSource = (UIDFolder) source;
+
+            long numericUid = Long.parseLong(uid);
+            Message message = uidSource.getMessageByUID(numericUid);
+
+            if (message == null) {
+                throw new MailException("Email with UID " + uid + " no longer exists in " + sourceFolderName);
+            }
+
+            source.copyMessages(new Message[]{message}, trash);
+            message.setFlag(Flags.Flag.DELETED, true);
+            source.expunge();
+
+            log.info("Successfully moved message {} to {}", uid, trashFolderName);
+
+        } catch (Exception e) {
+            log.error("Failed to move to trash for UID {}: {}", uid, e.getMessage(), e);
+            throw new MailException("Failed to move to trash: " + e.getMessage());
+        } finally {
+            try { if (source != null && source.isOpen()) source.close(true); } catch (Exception e) {}
+            try { if (store != null) store.close(); } catch (Exception e) {}
+        }
+    }
+
+    public void restoreFromTrash(String email, String password, String uid) {
+        log.info("Restoring email UID {} from Trash to Inbox for {}", uid, email);
+        Store store = null;
+        Folder trash = null;
+        Folder inbox = null;
+
+        try {
+            store = connect(email, password);
+
+            String trashName = resolveTrashFolderName(store);
+            trash = store.getFolder(trashName);
+            trash.open(Folder.READ_WRITE);
+
+            if (!(trash instanceof UIDFolder)) {
+                throw new MailException("Trash folder does not support persistent UIDs.");
+            }
+            UIDFolder uidTrash = (UIDFolder) trash;
+
+            inbox = store.getFolder("INBOX");
+            long numericUid = Long.parseLong(uid);
+            Message message = uidTrash.getMessageByUID(numericUid);
+
+            if (message == null) {
+                throw new MailException("Email with UID " + uid + " no longer exists in Trash");
+            }
+
+            trash.copyMessages(new Message[]{message}, inbox);
+            message.setFlag(Flags.Flag.DELETED, true);
+            trash.expunge();
+
+            log.info("Successfully restored message {} to Inbox", uid);
+
+        } catch (Exception e) {
+            log.error("Failed to restore from trash: {}", e.getMessage(), e);
+            throw new MailException("Failed to restore from trash: " + e.getMessage());
+        } finally {
+            try { if (trash != null && trash.isOpen()) trash.close(true); } catch (Exception e) {}
+            try { if (store != null) store.close(); } catch (Exception e) {}
+        }
+    }
+
+    public void deletePermanently(String email, String password, String uid) {
+        log.info("Permanently deleting email UID {} from Trash for {}", uid, email);
+        Store store = null;
+        Folder trash = null;
+
+        try {
+            store = connect(email, password);
+
+            String trashName = resolveTrashFolderName(store);
+            trash = store.getFolder(trashName);
+            trash.open(Folder.READ_WRITE);
+
+            if (!(trash instanceof UIDFolder)) {
+                throw new MailException("Trash folder does not support persistent UIDs.");
+            }
+            UIDFolder uidTrash = (UIDFolder) trash;
+
+            long numericUid = Long.parseLong(uid);
+            Message message = uidTrash.getMessageByUID(numericUid);
+
+            if (message == null) {
+                throw new MailException("Email with UID " + uid + " no longer exists in Trash");
+            }
+
+            message.setFlag(Flags.Flag.DELETED, true);
+            trash.expunge();
+
+            log.info("Successfully deleted message {} permanently", uid);
+
+        } catch (Exception e) {
+            log.error("Failed to delete permanently: {}", e.getMessage(), e);
+            throw new MailException("Failed to delete permanently: " + e.getMessage());
+        } finally {
+            try { if (trash != null && trash.isOpen()) trash.close(true); } catch (Exception e) {}
+            try { if (store != null) store.close(); } catch (Exception e) {}
+        }
+    }
+
+    public void markAsRead(String email, String password, String uid) {
+        Store store = null;
+        Folder inbox = null;
+        try {
+            store = connect(email, password);
+
+            inbox = store.getFolder("INBOX");
+            inbox.open(Folder.READ_WRITE);
+
+            if (!(inbox instanceof UIDFolder)) {
+                throw new MailException("INBOX does not support persistent UIDs.");
+            }
+            UIDFolder uidInbox = (UIDFolder) inbox;
+
+            long numericUid = Long.parseLong(uid);
+            Message message = uidInbox.getMessageByUID(numericUid);
+
+            if (message == null) {
+                throw new MailException("Email with UID " + uid + " no longer exists in INBOX");
+            }
+
+            message.setFlag(Flags.Flag.SEEN, true);
+            log.info("Marked message {} as read for {}", uid, email);
+        } catch (Exception e) {
+            log.error("Failed to mark as read: {}", e.getMessage(), e);
+            throw new MailException("Failed to mark as read: " + e.getMessage());
+        } finally {
+            cleanup(store, inbox);
+        }
+    }
+
+    public int getUnreadCount(String email, String password) {
+        Store store = null;
+        Folder inbox = null;
+        try {
+            store = connect(email, password);
+
+            inbox = store.getFolder("INBOX");
+            inbox.open(Folder.READ_ONLY);
+            return inbox.getUnreadMessageCount();
+        } catch (Exception e) {
+            log.error("Failed to get unread count: {}", e.getMessage());
+            return 0;
+        } finally {
+            cleanup(store, inbox);
+        }
+    }
+
+    public EmailDTO getEmail(String email, String password, String uid) {
+        log.info("Fetching single email details for UID: {}", uid);
+        Store store = null;
+        Folder inbox = null;
+        try {
+            store = connect(email, password);
+            inbox = store.getFolder("INBOX");
+            inbox.open(Folder.READ_ONLY);
+
+            if (!(inbox instanceof UIDFolder)) {
+                throw new MailException("INBOX does not support persistent UIDs.");
+            }
+            UIDFolder uidInbox = (UIDFolder) inbox;
+
+            long numericUid = Long.parseLong(uid);
+            Message message = uidInbox.getMessageByUID(numericUid);
+
+            if (message == null) {
+                throw new MailException("Email with UID " + uid + " not found");
+            }
+
+            return convertToDTO(message, uidInbox);
+        } catch (Exception e) {
+            log.error("Failed to fetch email details: {}", e.getMessage());
+            throw new MailException("Failed to fetch email: " + e.getMessage());
+        } finally {
+            cleanup(store, inbox);
+        }
+    }
+
+    private String resolveTrashFolderName(Store store) throws MessagingException {
+        String[] candidates = {"Trash", "TRASH", "Deleted Items", "Deleted", "INBOX.Trash"};
+        for (String name : candidates) {
+            try { 
+                Folder f = store.getFolder(name);
+                if (f.exists()) return name; 
+            } catch (Exception e) {
+                log.debug("Folder candidate '{}' check failed: {}", name, e.getMessage());
             }
         }
+        try {
+            Folder[] folders = store.getDefaultFolder().list("*");
+            for (Folder f : folders) {
+                String name = f.getName();
+                if (name.equalsIgnoreCase("Trash") || name.toUpperCase().contains("TRASH") || name.toUpperCase().contains("DELETED")) return name;
+            }
+        } catch (MessagingException e) {
+            log.warn("Failed to list all folders for trash resolution, falling back to 'Trash'");
+        }
+        return "Trash";
     }
 
-    /**
-     * Get single email by UID
-     */
-    public EmailDTO getEmail(String email, String password, String uid) {
-        // Implementation for getting single email
-        // For now, just get all and filter
-        List<EmailDTO> emails = getInbox(email, password, 100);
-        return emails.stream()
-                .filter(e -> e.getUid().equals(uid))
-                .findFirst()
-                .orElseThrow(() -> new MailException("Email not found"));
+    private String resolveSentFolderName(Store store) throws MessagingException {
+        String[] candidates = {"Sent", "SENT", "Sent Messages", "Sent Items", "INBOX.Sent"};
+        for (String name : candidates) {
+            try { 
+                Folder f = store.getFolder(name);
+                if (f.exists()) return name; 
+            } catch (Exception e) {
+                log.debug("Folder candidate '{}' check failed: {}", name, e.getMessage());
+            }
+        }
+        try {
+            Folder[] folders = store.getDefaultFolder().list("*");
+            for (Folder f : folders) {
+                String name = f.getName();
+                if (name.equalsIgnoreCase("Sent") || name.toUpperCase().contains("SENT")) return name;
+            }
+        } catch (MessagingException e) {
+             log.warn("Failed to list all folders for sent resolution, falling back to 'Sent'");
+        }
+        return "Sent";
     }
 
-    /**
-     * Convert Message to EmailDTO
-     */
-    private EmailDTO convertToDTO(Message message) throws MessagingException, IOException {
+    private EmailDTO convertToDTO(Message message, UIDFolder uidFolder) throws MessagingException, IOException {
         EmailDTO dto = new EmailDTO();
-
-        // UID (use message number as UID for now)
-        dto.setUid(String.valueOf(message.getMessageNumber()));
-
-        // From
-        Address[] fromAddresses = message.getFrom();
-        if (fromAddresses != null && fromAddresses.length > 0) {
-            dto.setFrom(((InternetAddress) fromAddresses[0]).getAddress());
+        
+        // Use persistent UID if available, fallback to message number
+        if (uidFolder != null) {
+            dto.setUid(String.valueOf(uidFolder.getUID(message)));
+        } else {
+            dto.setUid(String.valueOf(message.getMessageNumber()));
         }
 
-        // To
-        Address[] toAddresses = message.getRecipients(Message.RecipientType.TO);
-        if (toAddresses != null && toAddresses.length > 0) {
-            dto.setTo(((InternetAddress) toAddresses[0]).getAddress());
-        }
-
-        // Subject
+        Address[] from = message.getFrom();
+        if (from != null && from.length > 0) dto.setFrom(((InternetAddress) from[0]).getAddress());
+        Address[] to = message.getRecipients(Message.RecipientType.TO);
+        if (to != null && to.length > 0) dto.setTo(((InternetAddress) to[0]).getAddress());
         dto.setSubject(message.getSubject());
-
-        // Dates
         dto.setSentDate(message.getSentDate());
         dto.setReceivedDate(message.getReceivedDate());
-
-        // Read status
         dto.setRead(message.isSet(Flags.Flag.SEEN));
-
-        // Size
+        dto.setStarred(message.isSet(Flags.Flag.FLAGGED));
         dto.setSize(message.getSize());
-
-        // Body
         String[] content = extractContent(message);
-        dto.setBody(content[0]); // Plain text
-        dto.setHtmlBody(content[1]); // HTML
-
-        // Attachments
+        dto.setBody(content[0]);
+        dto.setHtmlBody(content[1]);
         dto.setHasAttachments(hasAttachments(message));
-
+        if (dto.isHasAttachments()) dto.setAttachments(extractAttachments(message));
         return dto;
     }
 
-    /**
-     * Extract email content (text and HTML)
-     */
     private String[] extractContent(Message message) throws MessagingException, IOException {
-        String plainText = "";
-        String html = "";
-
+        String plain = ""; String html = "";
         Object content = message.getContent();
-
-        if (content instanceof String) {
-            plainText = (String) content;
-        } else if (content instanceof Multipart) {
-            Multipart multipart = (Multipart) content;
-
-            for (int i = 0; i < multipart.getCount(); i++) {
-                BodyPart bodyPart = multipart.getBodyPart(i);
-
-                if (bodyPart.isMimeType("text/plain")) {
-                    plainText = (String) bodyPart.getContent();
-                } else if (bodyPart.isMimeType("text/html")) {
-                    html = (String) bodyPart.getContent();
-                } else if (bodyPart.getContent() instanceof MimeMultipart) {
-                    // Nested multipart
-                    MimeMultipart nested = (MimeMultipart) bodyPart.getContent();
+        if (content instanceof String) plain = (String) content;
+        else if (content instanceof Multipart) {
+            Multipart mp = (Multipart) content;
+            for (int i = 0; i < mp.getCount(); i++) {
+                BodyPart bp = mp.getBodyPart(i);
+                if (bp.isMimeType("text/plain")) plain = (String) bp.getContent();
+                else if (bp.isMimeType("text/html")) html = (String) bp.getContent();
+                else if (bp.getContent() instanceof MimeMultipart) {
+                    MimeMultipart nested = (MimeMultipart) bp.getContent();
                     for (int j = 0; j < nested.getCount(); j++) {
-                        BodyPart nestedPart = nested.getBodyPart(j);
-                        if (nestedPart.isMimeType("text/plain")) {
-                            plainText = (String) nestedPart.getContent();
-                        } else if (nestedPart.isMimeType("text/html")) {
-                            html = (String) nestedPart.getContent();
-                        }
+                        BodyPart nb = nested.getBodyPart(j);
+                        if (nb.isMimeType("text/plain")) plain = (String) nb.getContent();
+                        else if (nb.isMimeType("text/html")) html = (String) nb.getContent();
                     }
                 }
             }
         }
-
-        // If no plain text but has HTML, convert HTML to plain text (simple)
-        if (plainText.isEmpty() && !html.isEmpty()) {
-            plainText = html.replaceAll("<[^>]*>", "").trim();
-        }
-
-        return new String[] { plainText, html };
+        if (plain.isEmpty() && !html.isEmpty()) plain = html.replaceAll("<[^>]*>", "").trim();
+        return new String[]{plain, html};
     }
 
-    /**
-     * Check if message has attachments
-     */
     private boolean hasAttachments(Message message) throws MessagingException, IOException {
         Object content = message.getContent();
-
         if (content instanceof Multipart) {
-            Multipart multipart = (Multipart) content;
-
-            for (int i = 0; i < multipart.getCount(); i++) {
-                BodyPart bodyPart = multipart.getBodyPart(i);
-
-                if (Part.ATTACHMENT.equalsIgnoreCase(bodyPart.getDisposition())) {
-                    return true;
-                }
+            Multipart mp = (Multipart) content;
+            for (int i = 0; i < mp.getCount(); i++) {
+                if (Part.ATTACHMENT.equalsIgnoreCase(mp.getBodyPart(i).getDisposition())) return true;
             }
         }
-
         return false;
     }
 
-    /**
-     * Get unread count
-     */
-    public int getUnreadCount(String email, String password) {
-        Store store = null;
-        Folder inbox = null;
-
-        try {
-            Properties props = new Properties();
-            props.put("mail.imap.host", imapHost);
-            props.put("mail.imap.port", String.valueOf(imapPort));
-            props.put("mail.imap.ssl.enable", "true");
-            props.put("mail.imap.ssl.trust", "*"); // Trust all certificates for local dev
-
-            Session session = Session.getInstance(props);
-            store = session.getStore("imap");
-            store.connect(imapHost, imapPort, email, password);
-
-            inbox = store.getFolder("INBOX");
-            inbox.open(Folder.READ_ONLY);
-
-            return inbox.getUnreadMessageCount();
-
-        } catch (MessagingException e) {
-            log.error("Failed to get unread count: {}", e.getMessage());
-            return 0;
-        } finally {
-            try {
-                if (inbox != null && inbox.isOpen()) {
-                    inbox.close(false);
-                }
-                if (store != null) {
-                    store.close();
-                }
-            } catch (MessagingException e) {
-                log.warn("Error closing connection: {}", e.getMessage());
+    private List<String> extractAttachments(Part part) throws MessagingException, IOException {
+        List<String> names = new ArrayList<>();
+        if (part.isMimeType("multipart/*")) {
+            Multipart mp = (Multipart) part.getContent();
+            for (int i = 0; i < mp.getCount(); i++) names.addAll(extractAttachments(mp.getBodyPart(i)));
+        } else {
+            String disp = part.getDisposition();
+            if (Part.ATTACHMENT.equalsIgnoreCase(disp) || Part.INLINE.equalsIgnoreCase(disp)) {
+                String name = part.getFileName();
+                if (name != null) names.add(jakarta.mail.internet.MimeUtility.decodeText(name));
             }
+        }
+        return names;
+    }
+
+    private Store connect(String email, String password) throws MessagingException {
+        Properties props = new Properties();
+        props.put("mail.imap.host", imapHost);
+        props.put("mail.imap.port", String.valueOf(imapPort));
+        props.put("mail.imap.ssl.enable", "true");
+        props.put("mail.imap.ssl.trust", "*");
+        // Set timeouts to prevent hanging threads
+        props.put("mail.imap.connectiontimeout", "10000");
+        props.put("mail.imap.timeout", "10000");
+
+        Session session = Session.getInstance(props);
+        Store store = session.getStore("imap");
+        store.connect(imapHost, imapPort, email, password);
+        return store;
+    }
+
+    private void cleanup(Store store, Folder folder) {
+        try { if (folder != null && folder.isOpen()) folder.close(false); } catch (Exception e) {}
+        try { if (store != null) store.close(); } catch (Exception e) {}
+    }
+
+    public void downloadAttachment(String email, String password, String uid, String fileName, java.io.OutputStream os) {
+        Store store = null; Folder folder = null;
+        try {
+            store = connect(email, password);
+            folder = store.getFolder("INBOX");
+            folder.open(Folder.READ_ONLY);
+
+            if (!(folder instanceof UIDFolder)) {
+                 throw new MailException("INBOX does not support persistent UIDs.");
+            }
+            UIDFolder uidFolder = (UIDFolder) folder;
+
+            Message message = uidFolder.getMessageByUID(Long.parseLong(uid));
+            if (message == null) throw new MailException("Email with UID " + uid + " not found");
+
+            if (message.getContent() instanceof Multipart) findAndWriteAttachment((Multipart) message.getContent(), fileName, os);
+            else throw new MailException("No attachments found");
+        } catch (Exception e) {
+            log.error("Download failed for UID {}: {}", uid, e.getMessage());
+            throw new MailException("Download failed: " + e.getMessage());
+        } finally {
+            cleanup(store, folder);
         }
     }
 
-    /**
-     * Mark email as read
-     */
-    public void markAsRead(String email, String password, String uid) {
-        Store store = null;
-        Folder inbox = null;
-
-        try {
-            // IMAP Properties
-            Properties props = new Properties();
-            props.put("mail.imap.host", imapHost);
-            props.put("mail.imap.port", String.valueOf(imapPort));
-            props.put("mail.imap.ssl.enable", "true");
-            props.put("mail.imap.ssl.protocols", "TLSv1.2 TLSv1.3");
-            props.put("mail.imap.ssl.trust", "*"); // Trust all certificates for local dev
-            props.put("mail.imap.connectiontimeout", "10000");
-            props.put("mail.imap.timeout", "10000");
-
-            Session session = Session.getInstance(props);
-
-            store = session.getStore("imap");
-            store.connect(imapHost, imapPort, email, password);
-
-            inbox = store.getFolder("INBOX");
-            inbox.open(Folder.READ_WRITE); // Open in READ_WRITE mode
-
-            int msgNum;
-            try {
-                msgNum = Integer.parseInt(uid);
-            } catch (NumberFormatException e) {
-                log.warn("Invalid UID format: {}", uid);
+    private void findAndWriteAttachment(Multipart mp, String name, java.io.OutputStream os) throws MessagingException, IOException {
+        for (int i = 0; i < mp.getCount(); i++) {
+            BodyPart bp = mp.getBodyPart(i);
+            String fn = bp.getFileName();
+            if (fn != null && jakarta.mail.internet.MimeUtility.decodeText(fn).equalsIgnoreCase(name)) {
+                bp.getDataHandler().getInputStream().transferTo(os);
                 return;
             }
-
-            try {
-                Message message = inbox.getMessage(msgNum);
-                message.setFlag(Flags.Flag.SEEN, true);
-                log.info("Marked message {} as read for {}", uid, email);
-            } catch (IndexOutOfBoundsException e) {
-                log.warn("Message {} not found for {}", uid, email);
-            }
-
-        } catch (MessagingException e) {
-            log.error("Failed to mark as read: {}", e.getMessage(), e);
-            throw new MailException("Failed to mark as read");
-        } finally {
-            try {
-                if (inbox != null && inbox.isOpen()) {
-                    inbox.close(false);
-                }
-                if (store != null) {
-                    store.close();
-                }
-            } catch (MessagingException e) {
-                log.warn("Error closing IMAP connection: {}", e.getMessage());
-            }
+            if (bp.isMimeType("multipart/*")) findAndWriteAttachment((Multipart) bp.getContent(), name, os);
         }
     }
 }

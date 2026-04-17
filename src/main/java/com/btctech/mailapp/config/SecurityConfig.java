@@ -1,6 +1,7 @@
 package com.btctech.mailapp.config;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,6 +17,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -46,6 +48,16 @@ public class SecurityConfig {
 
                         // Any other request requires authentication
                         .anyRequest().authenticated())
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            log.error("✗ Unauthorized access attempt to {}: {}", request.getRequestURI(), authException.getMessage());
+                            response.sendError(401, "Unauthorized: " + authException.getMessage());
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            log.error("✗ Access denied for {}: {}", request.getRequestURI(), accessDeniedException.getMessage());
+                            response.sendError(403, "Access Denied: " + accessDeniedException.getMessage());
+                        })
+                )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -23,6 +23,7 @@ public class EmailDTO {
     private Date sentDate;
     private Date receivedDate;
     private boolean isRead;
+    private boolean isStarred;
     private boolean hasAttachments;
     private List<String> attachments;
     private int size;

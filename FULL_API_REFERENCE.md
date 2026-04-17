@@ -113,9 +113,53 @@ This document provides the definitive guide to all REST APIs in the BTC Tech Mai
 - **Auth**: Required
 - **Response**: `ApiResponse<EmailDTO>`
 
+### 3.4 Get Starred Emails
+- **URL**: `/api/mail/starred`
+- **Method**: `GET`
+- **Auth**: Required
+- **Params**: `limit` (default 50)
+- **Response**: `ApiResponse<InboxResponse>`
+
+### 3.5 Toggle Star
+- **URL**: `/api/mail/star/{uid}`
+- **Method**: `POST`
+- **Auth**: Required
+- **Params**: `folder` (default "INBOX")
+- **Response**: `ApiResponse<Void>`
+
 ---
 
-## 4. Drafts & Collaboration (`/api/mail/drafts`)
+## 4. Trash & Deletion (`/api/mail/trash`)
+
+### 4.1 Get Trash
+- **URL**: `/api/mail/trash`
+- **Method**: `GET`
+- **Auth**: Required
+- **Params**: `limit` (default 50)
+- **Response**: `ApiResponse<InboxResponse>`
+
+### 4.2 Move to Trash
+- **URL**: `/api/mail/trash/{uid}`
+- **Method**: `POST`
+- **Auth**: Required
+- **Params**: `folder` (default "INBOX")
+- **Response**: `ApiResponse<Void>`
+
+### 4.3 Restore from Trash
+- **URL**: `/api/mail/restore/{uid}`
+- **Method**: `POST`
+- **Auth**: Required
+- **Response**: `ApiResponse<Void>`
+
+### 4.4 Permanent Delete
+- **URL**: `/api/mail/permanent/{uid}`
+- **Method**: `DELETE`
+- **Auth**: Required
+- **Response**: `ApiResponse<Void>`
+
+---
+
+## 5. Drafts & Collaboration (`/api/mail/drafts`)
 
 ### 4.1 Save Draft
 - **URL**: `/api/mail/drafts`

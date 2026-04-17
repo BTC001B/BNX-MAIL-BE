@@ -14,10 +14,12 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -77,27 +79,36 @@ public class JwtFilter extends OncePerRequestFilter {
                     log.debug("Regular token - email: {}", jwtSubject);
                 }
                 
-                if (user != null && jwtUtil.validateToken(jwt, jwtSubject)) {
-                    UsernamePasswordAuthenticationToken authToken = 
-                        new UsernamePasswordAuthenticationToken(
-                            principal,  // Email or username
-                            null,
-                            new ArrayList<>()
+                if (user != null) {
+                    if (jwtUtil.validateToken(jwt, jwtSubject)) {
+                        // Map user roles into authorities
+                        List<SimpleGrantedAuthority> authorities = Collections.singletonList(
+                            new SimpleGrantedAuthority(user.getRole() != null ? user.getRole() : "ROLE_USER")
                         );
-                    
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
-                    
-                    log.debug("✓ Authentication successful for: {}", principal);
+
+                        UsernamePasswordAuthenticationToken authToken = 
+                            new UsernamePasswordAuthenticationToken(
+                                principal,  // Email or username
+                                null,
+                                authorities
+                            );
+                        
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                        
+                        log.debug("✓ Authentication successful for: {} with roles: {}", principal, authorities);
+                    } else {
+                        log.warn("✗ Token validation failed in JwtUtil for subject: {}. Token might be expired or secret changed.", jwtSubject);
+                    }
                 } else {
-                    log.warn("✗ Token validation failed for: {}", jwtSubject);
+                    log.error("✗ Authentication failed: User not found in database for identifier (subject): {}", jwtSubject);
                 }
             }
             
         } catch (JwtException e) {
-            log.error("JWT validation error: {}", e.getMessage());
+            log.error("✗ JWT validation error for path {}: {}", path, e.getMessage());
         } catch (Exception e) {
-            log.error("Authentication error: {}", e.getMessage(), e);
+            log.error("✗ Unexpected authentication error for path {}: {}", path, e.getMessage(), e);
         }
         
         filterChain.doFilter(request, response);
