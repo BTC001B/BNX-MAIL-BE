@@ -134,6 +134,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- WebSocket -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
         <!-- Swagger UI / OpenAPI -->
         <dependency>
             <groupId>org.springdoc</groupId>

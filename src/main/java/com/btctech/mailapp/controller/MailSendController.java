@@ -29,6 +29,7 @@ public class MailSendController {
 
     /**
      * Send email - NO PASSWORD NEEDED in request!
+     * Authorization header provides context to retrieve password from session.
      */
     @PostMapping("/send")
     public ResponseEntity<ApiResponse<Map<String, Object>>> sendMail(
@@ -37,14 +38,18 @@ public class MailSendController {
             Authentication authentication) {
 
         try {
-            // Get email from authentication
+            // Get email from authentication context
             String fromEmail = authentication.getName();
             log.info("Send mail request from {} to {}", fromEmail, request.getTo());
 
             // Extract JWT token
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Missing or invalid Authorization header"));
+            }
             String token = authHeader.substring(7);
 
-            // Get password from session
+            // Get password from backend session (Security: never expose password to client)
             String password = sessionService.getPasswordFromSession(token);
 
             if (password == null || password.isEmpty()) {
@@ -53,17 +58,17 @@ public class MailSendController {
                         .body(ApiResponse.error("Session expired or invalid. Please login again."));
             }
 
-            // Verify user has this email account
+            // Verify user has this email account active
             MailAccount mailAccount = mailboxService.getMailAccountByEmail(fromEmail);
-            if (!mailAccount.getActive()) {
+            if (mailAccount == null || !mailAccount.getActive()) {
                 return ResponseEntity.badRequest()
-                        .body(ApiResponse.error("Email account is disabled"));
+                        .body(ApiResponse.error("Email account not found or disabled"));
             }
 
-            // Send email
+            // Execute send
             mailSendService.sendMail(fromEmail, password, request);
 
-            // Prepare success response
+            // Response payload
             Map<String, Object> data = new HashMap<>();
             data.put("from", fromEmail);
             data.put("to", request.getTo());
@@ -78,11 +83,9 @@ public class MailSendController {
         } catch (MailException e) {
             log.error("Mail error: {}", e.getMessage());
             if (e.getMessage().contains("Session")) {
-                return ResponseEntity.status(401)
-                        .body(ApiResponse.error(e.getMessage()));
+                return ResponseEntity.status(401).body(ApiResponse.error(e.getMessage()));
             }
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             log.error("Error sending email: {}", e.getMessage(), e);
             return ResponseEntity.badRequest()

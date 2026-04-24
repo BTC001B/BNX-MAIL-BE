@@ -1,21 +1,25 @@
 package com.btctech.mailapp.repository;
 
-import com.btctech.mailapp.entity.StarredEmail;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface StarredEmailRepository extends JpaRepository<StarredEmail, Long> {
+public interface StarredEmailRepository extends JpaRepository<com.btctech.mailapp.entity.StarredEmail, Long> {
     
-    List<StarredEmail> findByUserEmail(String userEmail);
+    List<com.btctech.mailapp.entity.StarredEmail> findByUserEmail(String userEmail);
     
-    Optional<StarredEmail> findByUserEmailAndUidAndFolderName(String userEmail, String uid, String folderName);
+    Optional<com.btctech.mailapp.entity.StarredEmail> findByUserEmailAndUidAndFolderName(String userEmail, String uid, String folderName);
     
     boolean existsByUserEmailAndUidAndFolderName(String userEmail, String uid, String folderName);
     
-    @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.transaction.annotation.Transactional
+    @Modifying
+    @Transactional
     void deleteByUserEmailAndUidAndFolderName(String userEmail, String uid, String folderName);
 }
+
+
+

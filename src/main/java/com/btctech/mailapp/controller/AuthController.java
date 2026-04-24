@@ -77,7 +77,10 @@ public class AuthController {
 
         // 2. Extract Metadata
         String ipAddress = httpRequest.getRemoteAddr();
-        String userAgent = httpRequest.getHeader("User-Agent");
+        String userAgent = httpRequest.getHeader("X-Device-Name");
+        if (userAgent == null || userAgent.isEmpty()) {
+            userAgent = httpRequest.getHeader("User-Agent");
+        }
 
         // 3. Generate Dual Tokens
         String accessToken = jwtUtil.generateToken(request.getEmail());
@@ -169,5 +172,30 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(null, "Logged out successfully"));
+    }
+
+    /**
+     * Change Password: Update user and mail account passwords
+     */
+    @PostMapping("/change-password")
+    @Transactional
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        
+        String token = authHeader.substring(7);
+        String email = jwtUtil.extractEmail(token);
+        User user = userService.getUserByEmail(email);
+
+        log.info("Password change request for user: {}", user.getUsername());
+
+        // 1. Validate old password
+        userService.authenticate(email, request.getOldPassword());
+
+        // 2. Perform atomic update
+        userService.updateUserPassword(user, request.getNewPassword());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(null, "Password changed successfully"));
     }
 }

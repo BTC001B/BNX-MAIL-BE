@@ -89,6 +89,33 @@ public class SessionService {
             throw new MailException("Failed to retrieve session. Please login again.");
         }
     }
+
+    /**
+     * Get password for a user ID (for background tasks)
+     */
+    public String getPasswordByUserId(Long userId) {
+        try {
+            java.util.List<UserSession> sessions = sessionRepository.findByUserId(userId);
+            if (sessions.isEmpty()) {
+                log.warn("No active session found for user: {}", userId);
+                return null;
+            }
+            
+            // Get the most recent non-expired session
+            UserSession session = sessions.stream()
+                .filter(s -> s.getExpiresAt().isAfter(LocalDateTime.now()))
+                .findFirst()
+                .orElse(null);
+                
+            if (session == null) return null;
+            
+            return decrypt(session.getEncryptedPassword());
+        } catch (Exception e) {
+            log.error("Failed to retrieve password for background task: {}", e.getMessage());
+            return null;
+        }
+    }
+
     
     /**
      * Cleanup expired sessions

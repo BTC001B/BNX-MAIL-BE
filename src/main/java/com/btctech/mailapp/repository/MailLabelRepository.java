@@ -1,0 +1,12 @@
+package com.btctech.mailapp.repository;
+
+import com.btctech.mailapp.entity.MailLabel;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+
+@Repository
+public interface MailLabelRepository extends JpaRepository<MailLabel, Long> {
+    List<MailLabel> findByUserEmail(String userEmail);
+    boolean existsByUserEmailAndName(String userEmail, String name);
+}

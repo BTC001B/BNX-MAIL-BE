@@ -2,18 +2,26 @@ package com.btctech.mailapp.service;
 
 import com.btctech.mailapp.dto.DraftRequest;
 import com.btctech.mailapp.dto.SendMailRequest;
+import com.btctech.mailapp.dto.AttachmentInfo;
 import com.btctech.mailapp.entity.MailAccount;
 import com.btctech.mailapp.entity.MailDraft;
+import com.btctech.mailapp.entity.CollaboratorPermission;
 import com.btctech.mailapp.exception.MailException;
 import com.btctech.mailapp.repository.MailAccountRepository;
 import com.btctech.mailapp.repository.MailDraftRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -27,19 +35,19 @@ public class MailDraftService {
     private final AttachmentSecurityService attachmentSecurityService;
     private final ImagePreviewService imagePreviewService;
     private final DraftCollaborationService collaborationService;
-    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     /**
      * Upload attachment to draft
      */
     @Transactional
-    public com.btctech.mailapp.dto.AttachmentInfo addAttachment(Long draftId, Long mailAccountId, Long userId, org.springframework.web.multipart.MultipartFile file) {
+    public AttachmentInfo addAttachment(Long draftId, Long mailAccountId, Long userId, MultipartFile file) {
         MailDraft draft = draftRepository.findById(draftId)
                 .orElseThrow(() -> new MailException("Draft not found"));
 
         // Collaborative Security: Owner OR Collaborator with EDIT permission
         boolean isOwner = Objects.equals(draft.getMailAccountId(), mailAccountId);
-        boolean hasEditAccess = collaborationService.hasPermission(draftId, userId, com.btctech.mailapp.entity.CollaboratorPermission.EDIT);
+        boolean hasEditAccess = collaborationService.hasPermission(draftId, userId, CollaboratorPermission.EDIT);
 
         if (!isOwner && !hasEditAccess) {
             log.warn("Unauthorized ATTACHMENT attempt on Draft {} by User {}", draftId, userId);
@@ -63,7 +71,7 @@ public class MailDraftService {
         mailAccountRepository.updateStorageUsed(mailAccountId, file.getSize());
 
         // 5. Update JSON Manifest
-        com.btctech.mailapp.dto.AttachmentInfo info = new com.btctech.mailapp.dto.AttachmentInfo(
+        AttachmentInfo info = new AttachmentInfo(
                 file.getOriginalFilename(),
                 filePath,
                 thumbnailPath,
@@ -71,7 +79,7 @@ public class MailDraftService {
         );
 
         try {
-            java.util.List<com.btctech.mailapp.dto.AttachmentInfo> attachments = getAttachmentsList(draft.getAttachmentsJson());
+            List<AttachmentInfo> attachments = getAttachmentsList(draft.getAttachmentsJson());
             attachments.add(info);
             draft.setAttachmentsJson(objectMapper.writeValueAsString(attachments));
             draftRepository.save(draft);
@@ -93,7 +101,7 @@ public class MailDraftService {
 
         // Collaborative Security: Owner OR Collaborator with EDIT permission
         boolean isOwner = Objects.equals(draft.getMailAccountId(), mailAccountId);
-        boolean hasEditAccess = collaborationService.hasPermission(draftId, userId, com.btctech.mailapp.entity.CollaboratorPermission.EDIT);
+        boolean hasEditAccess = collaborationService.hasPermission(draftId, userId, CollaboratorPermission.EDIT);
 
         if (!isOwner && !hasEditAccess) {
             log.warn("Unauthorized ATTACHMENT REMOVAL attempt on Draft {} by User {}", draftId, userId);
@@ -101,8 +109,8 @@ public class MailDraftService {
         }
 
         try {
-            java.util.List<com.btctech.mailapp.dto.AttachmentInfo> attachments = getAttachmentsList(draft.getAttachmentsJson());
-            java.util.Optional<com.btctech.mailapp.dto.AttachmentInfo> toRemove = attachments.stream()
+            List<AttachmentInfo> attachments = getAttachmentsList(draft.getAttachmentsJson());
+            Optional<AttachmentInfo> toRemove = attachments.stream()
                     .filter(a -> a.getFileName().equals(fileName))
                     .findFirst();
 
@@ -124,11 +132,11 @@ public class MailDraftService {
     /**
      * Helper to deserialize attachments
      */
-    private java.util.List<com.btctech.mailapp.dto.AttachmentInfo> getAttachmentsList(String json) throws Exception {
+    private List<AttachmentInfo> getAttachmentsList(String json) throws Exception {
         if (json == null || json.isEmpty()) {
-            return new java.util.ArrayList<>();
+            return new ArrayList<>();
         }
-        return objectMapper.readValue(json, new com.fasterxml.jackson.core.type.TypeReference<java.util.List<com.btctech.mailapp.dto.AttachmentInfo>>() {});
+        return objectMapper.readValue(json, new TypeReference<List<AttachmentInfo>>() {});
     }
 
     /**
@@ -145,7 +153,7 @@ public class MailDraftService {
 
             // 2. Collaborative Security: Owner OR Collaborator with EDIT permission
             boolean isOwner = Objects.equals(draft.getMailAccountId(), request.getMailAccountId());
-            boolean hasEditAccess = collaborationService.hasPermission(request.getId(), request.getUserId(), com.btctech.mailapp.entity.CollaboratorPermission.EDIT);
+            boolean hasEditAccess = collaborationService.hasPermission(request.getId(), request.getUserId(), CollaboratorPermission.EDIT);
 
             if (!isOwner && !hasEditAccess) {
                 log.warn("Unauthorized EDIT attempt on Draft {} by User {}", request.getId(), request.getUserId());
@@ -179,7 +187,7 @@ public class MailDraftService {
 
         // Collaborative Security: Owner OR Collaborator with VIEW permission
         boolean isOwner = Objects.equals(draft.getMailAccountId(), mailAccountId);
-        boolean hasViewAccess = collaborationService.hasPermission(id, userId, com.btctech.mailapp.entity.CollaboratorPermission.VIEW);
+        boolean hasViewAccess = collaborationService.hasPermission(id, userId, CollaboratorPermission.VIEW);
 
         if (!isOwner && !hasViewAccess) {
              log.warn("Unauthorized VIEW attempt on Draft {} by User {}", id, userId);
@@ -193,7 +201,7 @@ public class MailDraftService {
     /**
      * Get all drafts for a mail account
      */
-    public java.util.List<MailDraft> getAccountDrafts(Long mailAccountId) {
+    public List<MailDraft> getAccountDrafts(Long mailAccountId) {
         return draftRepository.findByMailAccountIdOrderByUpdatedAtDesc(mailAccountId);
     }
 
@@ -212,8 +220,8 @@ public class MailDraftService {
         
         // 1. Calculate reclamation size
         try {
-            java.util.List<com.btctech.mailapp.dto.AttachmentInfo> attachments = getAttachmentsList(draft.getAttachmentsJson());
-            long totalSize = attachments.stream().mapToLong(com.btctech.mailapp.dto.AttachmentInfo::getSize).sum();
+            List<AttachmentInfo> attachments = getAttachmentsList(draft.getAttachmentsJson());
+            long totalSize = attachments.stream().mapToLong(AttachmentInfo::getSize).sum();
             if (totalSize > 0) {
                 mailAccountRepository.updateStorageUsed(mailAccountId, -totalSize);
             }
@@ -239,7 +247,7 @@ public class MailDraftService {
 
         // 2. Collaborative Security: Owner OR Collaborator with SEND permission
         boolean isOwner = Objects.equals(draft.getMailAccountId(), mailAccountId);
-        boolean hasSendAccess = collaborationService.hasPermission(id, userId, com.btctech.mailapp.entity.CollaboratorPermission.SEND);
+        boolean hasSendAccess = collaborationService.hasPermission(id, userId, CollaboratorPermission.SEND);
 
         if (!isOwner && !hasSendAccess) {
             log.warn("Unauthorized SEND attempt on Draft {} by User {}", id, userId);
@@ -250,7 +258,7 @@ public class MailDraftService {
         MailAccount account = mailAccountRepository.findById(draft.getMailAccountId())
                 .orElseThrow(() -> new MailException("Mail account not found"));
 
-        // 3. Convert to SendMailRequest
+        // 4. Convert to SendMailRequest
         SendMailRequest sendRequest = new SendMailRequest();
         sendRequest.setTo(draft.getTo());
         sendRequest.setCc(draft.getCc());
@@ -259,34 +267,34 @@ public class MailDraftService {
         sendRequest.setBody(draft.getBody());
         sendRequest.setIsHtml(draft.getIsHtml());
 
-        // 4. Attach Files from JSON manifest
+        // 5. Attach Files from JSON manifest
         try {
             sendRequest.setAttachments(getAttachmentsList(draft.getAttachmentsJson()));
         } catch (Exception e) {
             log.warn("Failed to parse attachments for draft {}: {}", id, e.getMessage());
         }
 
-        // 5. Lifecycle Check: Prevent duplicate sending
+        // 6. Lifecycle Check: Prevent duplicate sending
         if ("SENDING".equalsIgnoreCase(draft.getStatus())) {
             throw new MailException("Draft is already being sent. Please wait.");
         }
 
-        // 6. Set Status to SENDING
+        // 7. Set Status to SENDING
         draft.setStatus("SENDING");
         draft.setFailureReason(null);
         draftRepository.save(draft);
 
         try {
-            // 7. Send
+            // 8. Send
             mailSendService.sendMail(account.getEmail(), account.getPassword(), sendRequest);
 
-            // 8. Reclaim Storage (Total size of all attachments combined)
-            long totalReclaim = sendRequest.getAttachments().stream().mapToLong(com.btctech.mailapp.dto.AttachmentInfo::getSize).sum();
+            // 9. Reclaim Storage (Total size of all attachments combined)
+            long totalReclaim = sendRequest.getAttachments().stream().mapToLong(AttachmentInfo::getSize).sum();
             if (totalReclaim > 0) {
                 mailAccountRepository.updateStorageUsed(mailAccountId, -totalReclaim);
             }
 
-            // 9. Delete draft and files on success
+            // 10. Delete draft and files on success
             fileStorageService.deleteDraftDirectory(id);
             draftRepository.delete(draft);
             log.info("✓ Draft {} sent and cleaned up successfully", id);
@@ -294,7 +302,7 @@ public class MailDraftService {
         } catch (Exception e) {
             log.error("Failed to send draft {}: {}", id, e.getMessage());
             
-            // 10. FAILURE RECOVERY: Restore to FAILED mode instead of deleting
+            // 11. FAILURE RECOVERY: Restore to FAILED mode instead of deleting
             draft.setStatus("FAILED");
             draft.setFailureReason(e.getMessage());
             draftRepository.save(draft);

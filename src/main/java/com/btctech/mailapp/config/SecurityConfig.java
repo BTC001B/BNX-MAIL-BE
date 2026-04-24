@@ -39,12 +39,14 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
                                 "/swagger-resources/**",
-                                "/webjars/**"
+                                "/webjars/**",
+                                "/ws/**"
                         ).permitAll()
 
                         // Protected endpoints (require JWT)
                         .requestMatchers("/api/emails/**").authenticated()
-                        .requestMatchers("/api/mail/**").authenticated() // ✅ IMPORTANT
+                        .requestMatchers("/api/mail/**").authenticated()
+                        .requestMatchers("/api/chat/**").authenticated() // ✅ Added for chat system
 
                         // Any other request requires authentication
                         .anyRequest().authenticated())

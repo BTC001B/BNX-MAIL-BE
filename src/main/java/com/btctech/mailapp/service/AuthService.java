@@ -26,6 +26,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtUtil jwtUtil;
     private final MailboxService mailboxService;
+    private final SessionService sessionService;
 
     /**
      * Create and persist a refresh token with metadata
@@ -92,6 +93,19 @@ public class AuthService {
                 .map(RefreshToken::getUser)
                 .map(user -> {
                     String accessToken = jwtUtil.generateToken(user.getEmail());
+                    
+                    // ✅ FIX: Migrate password session to new access token
+                    try {
+                        String password = sessionService.getPasswordByUserId(user.getId());
+                        if (password != null) {
+                            MailAccount primaryAccount = mailboxService.getPrimaryEmail(user.getId());
+                            sessionService.createSession(user.getId(), primaryAccount.getId(), password, accessToken);
+                            log.info("✓ Migrated session to new access token for user: {}", user.getUsername());
+                        }
+                    } catch (Exception e) {
+                        log.warn("⚠ Could not migrate password session during token refresh: {}", e.getMessage());
+                    }
+
                     return buildLoginResponse(user, false, accessToken, requestRefreshToken);
                 })
                 .orElseThrow(() -> new MailException("Refresh token is not in database!"));

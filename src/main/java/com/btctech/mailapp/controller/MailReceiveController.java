@@ -82,6 +82,47 @@ public class MailReceiveController {
     }
 
     /**
+     * Get emails by category (Social, Promotions, Updates, etc.)
+     */
+    @GetMapping("/category/{category}")
+    public ResponseEntity<ApiResponse<InboxResponse>> getEmailsByCategory(
+            @PathVariable String category,
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+        
+        try {
+            String email = authentication.getName();
+            log.info("Fetching emails for category: {} for user: {}", category, email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            List<EmailDTO> emails = mailReceiveService.getEmailsByCategory(email, password, category, limit);
+
+            InboxResponse response = InboxResponse.builder()
+                    .email(email)
+                    .totalCount(emails.size())
+                    .unreadCount(0) // Logic for per-category unread count can be added later
+                    .emails(emails)
+                    .build();
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(response, "Category " + category + " fetched successfully"));
+
+        } catch (Throwable e) {
+            log.error("CRITICAL error fetching category {}: {}", category, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to fetch categorized emails: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Get sent emails
      */
     @GetMapping("/sent")
@@ -125,6 +166,50 @@ public class MailReceiveController {
             log.error("CRITICAL error fetching sent emails for {}: {}", userEmail, e.getMessage(), e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("Failed to fetch sent emails: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get emails by label
+     */
+    @GetMapping("/labels/{labelId}")
+    public ResponseEntity<ApiResponse<InboxResponse>> getEmailsByLabel(
+            @PathVariable Long labelId,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Get emails for label {} request from: {}", labelId, email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            List<EmailDTO> emails = mailReceiveService.getEmailsByLabel(email, password, labelId);
+            if (emails == null) emails = new java.util.ArrayList<>();
+
+            InboxResponse response = InboxResponse.builder()
+                    .email(email)
+                    .totalCount(emails.size())
+                    .unreadCount(0)
+                    .emails(emails)
+                    .build();
+
+            log.info("✓ Fetched {} emails for label {} for {}", emails.size(), labelId, email);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(response, "Emails for label fetched successfully"));
+
+        } catch (Throwable e) {
+            String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
+            log.error("CRITICAL error fetching emails for label {} for {}: {}", labelId, userEmail, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to fetch emails for this label: " + e.getMessage()));
         }
     }
 
@@ -272,6 +357,96 @@ public class MailReceiveController {
     }
 
     /**
+     * Get spam emails
+     */
+    @GetMapping("/spam")
+    public ResponseEntity<ApiResponse<InboxResponse>> getSpam(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Get spam emails request from: {}", email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            List<EmailDTO> emails = mailReceiveService.getSpam(email, password, limit);
+            if (emails == null) emails = new java.util.ArrayList<>();
+
+            InboxResponse response = InboxResponse.builder()
+                    .email(email)
+                    .totalCount(emails.size())
+                    .unreadCount(0)
+                    .emails(emails)
+                    .build();
+
+            log.info("✓ Fetched {} spam emails for {}", emails.size(), email);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(response, "Spam emails fetched successfully"));
+
+        } catch (Throwable e) {
+            String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
+            log.error("CRITICAL error fetching spam emails for {}: {}", userEmail, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to fetch spam emails: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get snoozed emails
+     */
+    @GetMapping("/snoozed")
+    public ResponseEntity<ApiResponse<InboxResponse>> getSnoozed(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Get snoozed emails request from: {}", email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            List<EmailDTO> emails = mailReceiveService.getSnoozed(email, password, limit);
+            if (emails == null) emails = new java.util.ArrayList<>();
+
+            InboxResponse response = InboxResponse.builder()
+                    .email(email)
+                    .totalCount(emails.size())
+                    .unreadCount(0)
+                    .emails(emails)
+                    .build();
+
+            log.info("✓ Fetched {} snoozed emails for {}", emails.size(), email);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(response, "Snoozed emails fetched successfully"));
+
+        } catch (Throwable e) {
+            String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
+            log.error("CRITICAL error fetching snoozed emails for {}: {}", userEmail, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to fetch snoozed emails: " + e.getMessage()));
+        }
+    }
+
+
+
+    /**
      * Move to trash
      */
     @PostMapping("/trash/{uid}")
@@ -306,6 +481,78 @@ public class MailReceiveController {
     }
 
     /**
+     * Mark as spam
+     */
+    @PostMapping("/spam/{uid}")
+    public ResponseEntity<ApiResponse<Void>> markAsSpam(
+            @PathVariable String uid,
+            @RequestParam(defaultValue = "INBOX") String folder,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Mark as spam request for {} in folder {} from {}", uid, folder, email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            mailReceiveService.markAsSpam(email, password, folder, uid);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(null, "Email marked as spam successfully"));
+
+        } catch (Throwable e) {
+            log.error("CRITICAL error marking email UID {} as spam from {}: {}", uid, folder, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to mark as spam: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Snooze email
+     */
+    @PostMapping("/snooze/{uid}")
+    public ResponseEntity<ApiResponse<Void>> snoozeEmail(
+            @PathVariable String uid,
+            @RequestParam String wakeUpAt,
+            @RequestParam(defaultValue = "INBOX") String folder,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Snooze request for {} in folder {} until {}", uid, folder, wakeUpAt);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            java.time.LocalDateTime wakeTime = java.time.LocalDateTime.parse(wakeUpAt);
+            mailReceiveService.snoozeEmail(email, password, folder, uid, wakeTime);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(null, "Email snoozed successfully"));
+
+        } catch (Exception e) {
+            log.error("CRITICAL error snoozing email UID {}: {}", uid, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to snooze email: " + e.getMessage()));
+        }
+    }
+
+
+
+    /**
      * Restore from trash
      */
     @PostMapping("/restore/{uid}")
@@ -335,6 +582,39 @@ public class MailReceiveController {
             log.error("CRITICAL error restoring email from trash: {}", e.getMessage(), e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("Failed to restore email: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Restore from spam
+     */
+    @PostMapping("/restore-spam/{uid}")
+    public ResponseEntity<ApiResponse<Void>> restoreFromSpam(
+            @PathVariable String uid,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Restore from spam request for {} from {}", uid, email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            mailReceiveService.restoreFromSpam(email, password, uid);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(null, "Email restored from spam successfully"));
+
+        } catch (Throwable e) {
+            log.error("CRITICAL error restoring email from spam: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to restore from spam: " + e.getMessage()));
         }
     }
 
@@ -438,6 +718,39 @@ public class MailReceiveController {
             log.error("CRITICAL error marking email as read: {}", e.getMessage(), e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("Failed to mark email as read: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Mark email as unread
+     */
+    @PostMapping("/unread/{uid}")
+    public ResponseEntity<ApiResponse<Void>> markAsUnread(
+            @PathVariable String uid,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Mark as unread request for {} from {}", uid, email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            mailReceiveService.markAsUnread(email, password, uid);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(null, "Email marked as unread"));
+
+        } catch (Throwable e) {
+            log.error("CRITICAL error marking email as unread: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to mark email as unread: " + e.getMessage()));
         }
     }
 

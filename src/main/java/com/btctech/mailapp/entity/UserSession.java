@@ -29,4 +29,16 @@ public class UserSession {
     
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
+    
+    @Column(name = "device_name")
+    private String deviceName;
+    
+    @Column(name = "ip_address")
+    private String ipAddress;
+    
+    @Column(name = "location")
+    private String location;
+    
+    @Column(name = "last_active_at")
+    private LocalDateTime lastActiveAt = LocalDateTime.now();
 }
