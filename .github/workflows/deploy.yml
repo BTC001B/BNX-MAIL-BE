@@ -10,34 +10,42 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout latest code
+      # 1️⃣ Checkout latest code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # 2. Setup Java
+      # 2️⃣ Setup Java
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: 'oracle'
           java-version: '17'
 
-      # 3. Force clean (VERY IMPORTANT)
+      # 3️⃣ DEBUG: Show actual file used in CI
+      - name: Debug Controller Source
+        run: |
+          echo "===== FINDING CONTROLLER ====="
+          find . -name "EmailManagementController.java"
+          echo "===== CHECKING FOR /all ENDPOINT ====="
+          cat $(find . -name "EmailManagementController.java") | grep "/all" || echo "❌ /all NOT FOUND IN SOURCE"
+
+      # 4️⃣ Force clean build
       - name: Remove old build
         run: rm -rf target
 
-      # 4. Build project
+      # 5️⃣ Build JAR
       - name: Build JAR
         run: ./mvnw clean install -DskipTests
 
-      # 5. DEBUG: verify correct code is inside JAR
-      - name: Verify JAR contains new API
+      # 6️⃣ VERIFY JAR CONTENT (CRITICAL)
+      - name: Verify JAR contains API
         run: |
           echo "===== CHECKING JAR CONTENT ====="
           jar tf target/mailapp-1.0.0.jar | grep Email
           echo "===== CHECKING /all ENDPOINT ====="
-          strings target/mailapp-1.0.0.jar | grep "/all" || echo "❌ /all NOT FOUND"
+          strings target/mailapp-1.0.0.jar | grep "/all" || echo "❌ /all NOT FOUND IN JAR"
 
-      # 6. Upload JAR to server
+      # 7️⃣ Upload JAR to server
       - name: Upload JAR to Server
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -47,7 +55,7 @@ jobs:
           source: "target/mailapp-1.0.0.jar"
           target: "/root/"
 
-      # 7. Restart backend
+      # 8️⃣ Restart backend
       - name: Restart Backend
         uses: appleboy/ssh-action@v1.0.0
         with:
