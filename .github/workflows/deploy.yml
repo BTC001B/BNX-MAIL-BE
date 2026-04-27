@@ -61,8 +61,13 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            pkill -f mailapp-1.0.0.jar || true
+            set +e
+            pkill -f mailapp-1.0.0.jar
             sleep 3
+
+            echo "Starting app..."
             nohup java -jar /root/mailapp-1.0.0.jar > /root/mailapp.log 2>&1 &
+
             sleep 5
+            echo "App logs:"
             tail -20 /root/mailapp.log
