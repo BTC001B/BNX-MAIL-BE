@@ -76,7 +76,14 @@ public class AuthController {
         User user = result.getUser();
 
         // 2. Extract Metadata
-        String ipAddress = httpRequest.getRemoteAddr();
+        String ipAddress = httpRequest.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            ipAddress = httpRequest.getRemoteAddr();
+        } else {
+            // If there are multiple IPs (e.g., through multiple proxies), take the first one
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+
         String userAgent = httpRequest.getHeader("X-Device-Name");
         if (userAgent == null || userAgent.isEmpty()) {
             userAgent = httpRequest.getHeader("User-Agent");
