@@ -251,4 +251,11 @@ public class MailboxService {
         
         log.info("✓ Set primary email: {} for user: {}", primary.getEmail(), userId);
     }
+
+    public List<MailAccount> getAllEmails(String domain) {
+        if (domain != null && !domain.isEmpty()) {
+            return mailAccountRepository.findByEmailEndingWith("@" + domain);
+        }
+        return mailAccountRepository.findAll();
+    }
 }

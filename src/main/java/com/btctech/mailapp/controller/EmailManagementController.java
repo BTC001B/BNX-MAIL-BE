@@ -188,4 +188,33 @@ public class EmailManagementController {
                     .body(ApiResponse.error("Failed to update primary email: " + e.getMessage()));
         }
     }
+
+    /**
+     * Get all registered emails (Public Directory)
+     */
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAllEmails(
+            @RequestParam(required = false, defaultValue = "bnxmail.com") String domain) {
+        
+        log.info("Fetching public directory for domain: {}", domain);
+        List<MailAccount> accounts = mailboxService.getAllEmails(domain);
+
+        List<Map<String, Object>> emailList = accounts.stream().map(account -> {
+            Map<String, Object> emailData = new HashMap<>();
+            emailData.put("id", account.getId());
+            emailData.put("email", account.getEmail());
+            emailData.put("isPrimary", account.getIsPrimary());
+            emailData.put("active", account.getActive());
+            emailData.put("createdAt", account.getCreatedAt());
+            return emailData;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("count", emailList.size());
+        data.put("domain", domain);
+        data.put("emails", emailList);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(data, "Public email directory retrieved"));
+    }
 }
