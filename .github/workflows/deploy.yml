@@ -21,24 +21,26 @@ jobs:
           distribution: 'oracle'
           java-version: '17'
 
-      # 3️⃣ DEBUG: Show actual file used in CI
+      # 3️⃣ DEBUG: Confirm correct source code
       - name: Debug Controller Source
         run: |
-          echo "===== FINDING CONTROLLER ====="
+          echo "===== CONTROLLER FILE ====="
           find . -name "EmailManagementController.java"
-          echo "===== CHECKING FOR /all ENDPOINT ====="
+          echo "===== CHECK /all IN SOURCE ====="
           cat $(find . -name "EmailManagementController.java") | grep "/all" || echo "❌ /all NOT FOUND IN SOURCE"
 
-      # 4️⃣ Force clean build
-      - name: Remove old build
-        run: rm -rf target
+      # 4️⃣ Force FULL CLEAN (important)
+      - name: Clean old build + cache
+        run: |
+          rm -rf target
+          rm -rf ~/.m2/repository/com/btctech
 
-      # 5️⃣ Build JAR
+      # 5️⃣ Build project (force fresh compile)
       - name: Build JAR
-        run: ./mvnw clean install -DskipTests
+        run: ./mvnw clean install -DskipTests -U
 
-      # 6️⃣ VERIFY JAR CONTENT (CRITICAL)
-      - name: Verify JAR contains API
+      # 6️⃣ VERIFY: ensure new API is inside JAR
+      - name: Verify JAR content
         run: |
           echo "===== CHECKING JAR CONTENT ====="
           jar tf target/mailapp-1.0.0.jar | grep Email
