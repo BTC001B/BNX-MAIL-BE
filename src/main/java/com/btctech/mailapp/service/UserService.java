@@ -232,7 +232,15 @@ public class UserService {
      */
     public User getUserByEmailOrUsername(String identifier) {
         if (identifier.contains("@")) {
-            return getUserByEmail(identifier);
+            try {
+                return getUserByEmail(identifier);
+            } catch (MailException e) {
+                // FALLBACK: Check if this email belongs to any MailAccount
+                return mailAccountRepository.findByEmail(identifier)
+                        .map(ma -> userRepository.findById(ma.getUserId())
+                                .orElseThrow(() -> new MailException("User not found for this mail account")))
+                        .orElseThrow(() -> new MailException("User not found: " + identifier));
+            }
         } else {
             return getUserByUsername(identifier);
         }

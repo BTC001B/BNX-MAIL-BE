@@ -18,6 +18,12 @@ public class User {
     @Column(unique = true, nullable = true)
     private String email;
     
+    @Column(name = "recovery_email", length = 255)
+    private String recoveryEmail;
+    
+    @Column(name = "phone_number", length = 50)
+    private String phoneNumber;
+    
     @Column(nullable = false)
     private String password;
     

@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints (no authentication)
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
+                        .requestMatchers("/api/oauth/token").permitAll() // ✅ Public token exchange
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
@@ -44,6 +45,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // Protected endpoints (require JWT)
+                        .requestMatchers("/api/oauth/authorize").authenticated() // ✅ Protected authorize
                         .requestMatchers("/api/emails/**").authenticated()
                         .requestMatchers("/api/mail/**").authenticated()
                         .requestMatchers("/api/chat/**").authenticated() // ✅ Added for chat system

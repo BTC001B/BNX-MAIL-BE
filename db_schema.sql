@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     email VARCHAR(255) UNIQUE NULL,
+    recovery_email VARCHAR(255) NULL,
+    phone_number VARCHAR(50) NULL,
     password VARCHAR(255) NOT NULL,
     first_name VARCHAR(50),
     last_name VARCHAR(50),
@@ -61,6 +63,20 @@ CREATE TABLE IF NOT EXISTS organization_invites (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
     INDEX idx_token (invite_token)
+) ENGINE=InnoDB;
+
+-- ==========================================
+-- TABLE: PASSWORD_RESET_TOKENS
+-- ==========================================
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    expiry_date DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_token (token),
+    INDEX idx_user_id (user_id)
 ) ENGINE=InnoDB;
 
 -- ==========================================

@@ -71,12 +71,12 @@ public class JwtFilter extends OncePerRequestFilter {
                     
                     log.debug("Temp token - username: {}", username);
                     
-                } else if (jwtSubject.contains("@")) {
-                    // Regular token (email)
-                    user = userService.getUserByEmail(jwtSubject);
+                } else {
+                    // Handle regular tokens (emails) and other cases
+                    user = userService.getUserByEmailOrUsername(jwtSubject);
                     principal = jwtSubject;
                     
-                    log.debug("Regular token - email: {}", jwtSubject);
+                    log.debug("Validated token for subject: {}", jwtSubject);
                 }
                 
                 if (user != null) {

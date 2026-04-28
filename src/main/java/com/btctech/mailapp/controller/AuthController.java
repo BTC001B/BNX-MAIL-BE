@@ -205,4 +205,37 @@ public class AuthController {
         return ResponseEntity.ok(
                 ApiResponse.success(null, "Password changed successfully"));
     }
+
+    /**
+     * Get masked recovery options for forgot password
+     */
+    @GetMapping("/forgot-password/options")
+    public ResponseEntity<ApiResponse<RecoveryOptionsResponse>> getRecoveryOptions(
+            @RequestParam String identifier) {
+        log.info("Fetching recovery options for: {}", identifier);
+        RecoveryOptionsResponse options = authService.getRecoveryOptions(identifier);
+        return ResponseEntity.ok(ApiResponse.success(options, "Recovery options retrieved successfully"));
+    }
+
+    /**
+     * Send OTP to selected recovery method
+     */
+    @PostMapping("/forgot-password/send-otp")
+    public ResponseEntity<ApiResponse<Void>> sendRecoveryOtp(
+            @Valid @RequestBody SendOtpRequest request) {
+        log.info("Sending recovery OTP to {} via {}", request.getIdentifier(), request.getMethod());
+        authService.sendRecoveryOtp(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "OTP sent successfully"));
+    }
+
+    /**
+     * Reset password using OTP
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        log.info("Resetting password for: {}", request.getIdentifier());
+        authService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Password reset successfully"));
+    }
 }

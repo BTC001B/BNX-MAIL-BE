@@ -24,6 +24,7 @@ public class MailboxService {
     
     private final MailAccountRepository mailAccountRepository;
     private final DomainRepository domainRepository;
+    private final com.btctech.mailapp.repository.UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     
     @Value("${mail.domain}")
@@ -113,8 +114,12 @@ public class MailboxService {
             mailAccount = mailAccountRepository.save(mailAccount);
             log.info("✓ Mail account created: {} with path: {}", fullEmail, maildirPath);
             
-            // 10/10 Polish: Every mailbox starts with isPrimary = false.
-            // (Auto-primary logic removed to allow for manual user selection later)
+            // ✅ AUTO-LINK: Update User entity with this email if it's their first one
+            if (user.getEmail() == null || user.getEmail().isEmpty()) {
+                user.setEmail(fullEmail);
+                userRepository.save(user);
+                log.info("✓ Linked primary email {} to user {}", fullEmail, user.getUsername());
+            }
             
             return mailAccount;
             

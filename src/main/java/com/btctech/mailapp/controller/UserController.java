@@ -21,7 +21,39 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final com.btctech.mailapp.repository.MailAccountRepository mailAccountRepository;
     private final JwtUtil jwtUtil;
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getCurrentUser(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        String token = authHeader.replace("Bearer ", "");
+        String identifier = jwtUtil.extractEmail(token);
+        User user = userService.getUserByEmailOrUsername(identifier);
+        
+        // Find primary BNX Mail
+        String bnxEmail = user.getEmail(); // Fallback to user email field
+        var primaryAccount = mailAccountRepository.findByUserIdAndIsPrimary(user.getId(), true)
+                .or(() -> mailAccountRepository.findByUserId(user.getId()).stream().findFirst());
+        
+        if (primaryAccount.isPresent()) {
+            bnxEmail = primaryAccount.get().getEmail();
+        }
+
+        String fullName = (user.getFirstName() != null ? user.getFirstName() : "") + 
+                         (user.getLastName() != null ? " " + user.getLastName() : "");
+        fullName = fullName.trim();
+        if (fullName.isEmpty()) fullName = user.getUsername();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", user.getId());
+        data.put("name", fullName);
+        data.put("email", bnxEmail != null ? bnxEmail : user.getUsername() + "@bnxmail.com");
+        data.put("accountType", user.getAccountType());
+        
+        return ResponseEntity.ok(ApiResponse.success(data, "User profile retrieved successfully"));
+    }
 
     /**
      * Parent Approval API
