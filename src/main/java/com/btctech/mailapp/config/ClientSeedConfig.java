@@ -18,22 +18,22 @@ public class ClientSeedConfig {
     @Bean
     public CommandLineRunner seedClients() {
         return args -> {
-            clientAppRepository.findByClientId("bnx-test-app").ifPresentOrElse(
+            clientAppRepository.findByClientId("kinsword").ifPresentOrElse(
                 client -> {
                     log.info("Updating test OAuth client redirect URI...");
-                    client.setRedirectUri("http://localhost:3000");
+                    client.setRedirectUri("https://www.kinsword.com");
                     clientAppRepository.save(client);
                 },
                 () -> {
                     log.info("Seeding test OAuth client...");
                     ClientApp client = ClientApp.builder()
-                            .clientId("bnx-test-app")
+                            .clientId("kinsword")
                             .clientSecret("secure-test-secret-2026")
-                            .appName("BNX Test Application")
-                            .redirectUri("http://localhost:3000")
+                            .appName("KINSWORD")
+                            .redirectUri("https://www.kinsword.com")
                             .build();
                     clientAppRepository.save(client);
-                    log.info("Test OAuth client seeded: bnx-test-app");
+                    log.info("Test OAuth client seeded: kinsword");
                 }
             );
         };
