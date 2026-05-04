@@ -90,8 +90,13 @@ public class UserService {
     public UserSettings updateSettings(User user, UserSettings newSettings) {
         UserSettings existing = getSettings(user);
         
-        // Update only non-null fields or specific ones
-        if (newSettings.getPhoneNumber() != null) existing.setPhoneNumber(newSettings.getPhoneNumber());
+        // Update User entity for recovery info (Sync phone number)
+        if (newSettings.getPhoneNumber() != null) {
+            existing.setPhoneNumber(newSettings.getPhoneNumber());
+            user.setPhoneNumber(newSettings.getPhoneNumber());
+            userRepository.save(user);
+        }
+        
         if (newSettings.getLocation() != null) existing.setLocation(newSettings.getLocation());
         if (newSettings.getJobTitle() != null) existing.setJobTitle(newSettings.getJobTitle());
         
@@ -115,6 +120,23 @@ public class UserService {
         if (newSettings.getLanguage() != null) existing.setLanguage(newSettings.getLanguage());
         
         return userSettingsRepository.save(existing);
+    }
+
+    /**
+     * Update User recovery info
+     */
+    @Transactional
+    public void updateRecoveryInfo(User user, String recoveryEmail, String phoneNumber) {
+        if (recoveryEmail != null) user.setRecoveryEmail(recoveryEmail);
+        if (phoneNumber != null) {
+            user.setPhoneNumber(phoneNumber);
+            // Sync with UserSettings
+            UserSettings settings = getSettings(user);
+            settings.setPhoneNumber(phoneNumber);
+            userSettingsRepository.save(settings);
+        }
+        userRepository.save(user);
+        log.info("✓ Recovery info updated for user: {}", user.getUsername());
     }
 
     /**

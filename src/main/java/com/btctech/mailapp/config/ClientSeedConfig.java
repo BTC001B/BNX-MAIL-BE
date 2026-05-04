@@ -36,6 +36,25 @@ public class ClientSeedConfig {
                     log.info("Test OAuth client seeded: kinsword");
                 }
             );
+            
+            clientAppRepository.findByClientId("cliks-app").ifPresentOrElse(
+                client -> {
+                    log.info("Updating cliks-app OAuth client redirect URI...");
+                    client.setRedirectUri("https://cliks.beta-softnet.com");
+                    clientAppRepository.save(client);
+                },
+                () -> {
+                    log.info("Seeding cliks-app OAuth client...");
+                    ClientApp client = ClientApp.builder()
+                            .clientId("cliks-app")
+                            .clientSecret("secure-cliks-secret-2026")
+                            .appName("Cliks")
+                            .redirectUri("https://cliks.beta-softnet.com")
+                            .build();
+                    clientAppRepository.save(client);
+                    log.info("Test OAuth client seeded: cliks-app");
+                }
+            );
         };
     }
 }

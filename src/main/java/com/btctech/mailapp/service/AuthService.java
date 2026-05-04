@@ -267,6 +267,23 @@ public class AuthService {
         log.info("Revoked all active sessions for user {} after password reset", user.getUsername());
     }
 
+    /**
+     * standalone verification of OTP
+     */
+    public void verifyOtp(String identifier, String otp) {
+        User user = userService.getUserByEmailOrUsername(identifier);
+
+        PasswordResetToken token = passwordResetTokenRepository.findByUserAndToken(user, otp)
+                .orElseThrow(() -> new MailException("Invalid OTP"));
+
+        if (token.isExpired()) {
+            passwordResetTokenRepository.delete(token);
+            throw new MailException("OTP has expired");
+        }
+        
+        log.info("✓ OTP verified successfully for: {}", identifier);
+    }
+
     // Helper functions for masking
     private String maskEmail(String email) {
         if (email == null || !email.contains("@")) return null;

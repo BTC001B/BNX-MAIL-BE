@@ -229,6 +229,17 @@ public class AuthController {
     }
 
     /**
+     * Verify OTP without resetting password
+     */
+    @PostMapping("/forgot-password/verify-otp")
+    public ResponseEntity<ApiResponse<Void>> verifyRecoveryOtp(
+            @Valid @RequestBody VerifyOtpRequest request) {
+        log.info("Verifying OTP for: {}", request.getIdentifier());
+        authService.verifyOtp(request.getIdentifier(), request.getOtp());
+        return ResponseEntity.ok(ApiResponse.success(null, "OTP verified successfully"));
+    }
+
+    /**
      * Reset password using OTP
      */
     @PostMapping("/reset-password")

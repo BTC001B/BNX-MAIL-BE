@@ -71,8 +71,14 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // ✅ Allow Vite dev server (port 3000 and 5173)
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        // ✅ Allow production domains and local dev servers
+        configuration.setAllowedOriginPatterns(List.of(
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "https://www.kinsword.com",
+            "https://www.b2auth.com",
+            "https://cliks.beta-softnet.com"
+        ));
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));

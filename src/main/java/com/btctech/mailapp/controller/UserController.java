@@ -206,4 +206,33 @@ public class UserController {
         
         return ResponseEntity.ok(ApiResponse.success(result, "Activity logs retrieved successfully"));
     }
+
+    @GetMapping("/recovery")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getRecoveryInfo(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        String token = authHeader.replace("Bearer ", "");
+        String identifier = jwtUtil.extractEmail(token);
+        User user = userService.getUserByEmailOrUsername(identifier);
+        
+        Map<String, String> data = new HashMap<>();
+        data.put("recoveryEmail", user.getRecoveryEmail());
+        data.put("phoneNumber", user.getPhoneNumber());
+        
+        return ResponseEntity.ok(ApiResponse.success(data, "Recovery info retrieved successfully"));
+    }
+
+    @PatchMapping("/recovery")
+    public ResponseEntity<ApiResponse<Void>> updateRecoveryInfo(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody com.btctech.mailapp.dto.RecoveryInfoDTO recoveryInfo) {
+        
+        String token = authHeader.replace("Bearer ", "");
+        String identifier = jwtUtil.extractEmail(token);
+        User user = userService.getUserByEmailOrUsername(identifier);
+        
+        userService.updateRecoveryInfo(user, recoveryInfo.getRecoveryEmail(), recoveryInfo.getPhoneNumber());
+        
+        return ResponseEntity.ok(ApiResponse.success(null, "Recovery info updated successfully"));
+    }
 }
