@@ -40,7 +40,7 @@ public class ClientSeedConfig {
             clientAppRepository.findByClientId("cliks-app").ifPresentOrElse(
                 client -> {
                     log.info("Updating cliks-app OAuth client redirect URI...");
-                    client.setRedirectUri("https://cliks.beta-softnet.com");
+                    client.setRedirectUri("https://cliks.beta-softnet.com/auth");
                     clientAppRepository.save(client);
                 },
                 () -> {
@@ -49,10 +49,29 @@ public class ClientSeedConfig {
                             .clientId("cliks-app")
                             .clientSecret("secure-cliks-secret-2026")
                             .appName("Cliks")
-                            .redirectUri("https://cliks.beta-softnet.com")
+                            .redirectUri("https://cliks.beta-softnet.com/auth")
                             .build();
                     clientAppRepository.save(client);
                     log.info("Test OAuth client seeded: cliks-app");
+                }
+            );
+
+            clientAppRepository.findByClientId("cliks-business").ifPresentOrElse(
+                client -> {
+                    log.info("Updating cliks-business OAuth client redirect URI...");
+                    client.setRedirectUri("https://cliksbusiness.com/auth");
+                    clientAppRepository.save(client);
+                },
+                () -> {
+                    log.info("Seeding cliks-business OAuth client...");
+                    ClientApp client = ClientApp.builder()
+                            .clientId("cliks-business")
+                            .clientSecret("secure-cliks-biz-secret-2026")
+                            .appName("Cliks Business")
+                            .redirectUri("https://cliksbusiness.com/auth")
+                            .build();
+                    clientAppRepository.save(client);
+                    log.info("Test OAuth client seeded: cliks-business");
                 }
             );
         };
