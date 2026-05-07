@@ -77,7 +77,9 @@ public class SecurityConfig {
             "http://localhost:5173",
             "https://www.kinsword.com",
             "https://www.b2auth.com",
-            "https://cliks.beta-softnet.com"
+            "https://cliks.beta-softnet.com",
+            "https://cliksbusiness.com",
+            "https://www.bnxmail.com"
         ));
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
