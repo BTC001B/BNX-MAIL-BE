@@ -77,12 +77,14 @@ public class SecurityConfig {
             "http://localhost:5173",
             "https://www.kinsword.com",
             "https://www.b2auth.com",
+            "https://b2auth.com",
             "https://cliks.beta-softnet.com",
             "https://cliksbusiness.com",
-            "https://www.bnxmail.com"
+            "https://www.bnxmail.com",
+            "https://bnxmail.com"
         ));
 
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true); // ✅ Changed to true
         configuration.setMaxAge(3600L);
