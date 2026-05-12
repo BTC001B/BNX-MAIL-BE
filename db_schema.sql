@@ -244,25 +244,6 @@ CREATE TABLE IF NOT EXISTS mail_labels (
 ) ENGINE=InnoDB;
 
 -- ==========================================
--- SAMPLE DATA
--- ==========================================
--- Using IGNORE to avoid errors if duplicates exist
-INSERT IGNORE INTO users (username, email, password, first_name, last_name, role) 
-VALUES 
-('admin', 'admin@btctech.shop', '$2a$10$dummyHashedPassword', 'Admin', 'User', 'ADMIN'),
-('siva', 'siva@btctech.shop', '$2a$10$dummyHashedPassword', 'Siva', 'Kumar', 'USER');
-CREATE TABLE IF NOT EXISTS business_profiles (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id BIGINT NOT NULL,
-    business_name VARCHAR(255) NOT NULL,
-    business_type VARCHAR(100),
-    registration_number VARCHAR(100),
-    created_at DATETIME NOT NULL,
-    UNIQUE (user_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- ==========================================
 -- CHAT SYSTEM TABLES
 -- ==========================================
 CREATE TABLE IF NOT EXISTS chats (
@@ -289,3 +270,28 @@ CREATE TABLE IF NOT EXISTS messages (
     FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- ==========================================
+-- TABLE: VERIFICATION_SESSIONS (For DigiLocker)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS verification_sessions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    mail_account_id BIGINT NOT NULL,
+    reference_id VARCHAR(100) UNIQUE NOT NULL,
+    verification_id VARCHAR(100) NULL,
+    status VARCHAR(20) DEFAULT 'PENDING',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (mail_account_id) REFERENCES mail_accounts(id) ON DELETE CASCADE,
+    INDEX idx_reference (reference_id),
+    INDEX idx_verification (verification_id)
+) ENGINE=InnoDB;
+
+-- ==========================================
+-- SAMPLE DATA
+-- ==========================================
+INSERT IGNORE INTO users (username, email, password, first_name, last_name, role) 
+VALUES 
+('admin', 'admin@btctech.shop', '$2a$10$dummyHashedPassword', 'Admin', 'User', 'ADMIN'),
+('siva', 'siva@btctech.shop', '$2a$10$dummyHashedPassword', 'Siva', 'Kumar', 'USER');

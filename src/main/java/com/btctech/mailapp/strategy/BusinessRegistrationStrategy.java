@@ -25,11 +25,23 @@ public class BusinessRegistrationStrategy implements RegistrationStrategy {
     @Override
     @Transactional
     public User register(RegisterRequest request) {
-        // 1. Create Organization
-        Organization org = organizationService.createOrganization(
-                request.getBusinessName(),
-                request.getDomain()
-        );
+        // 1. Determine Domain and Get/Create Organization
+        String domain = request.getDomain();
+        if (domain == null || domain.trim().isEmpty()) {
+            domain = "bnxmail.com";
+        }
+
+        Organization org;
+        try {
+            // Check if organization for this domain already exists
+            org = organizationService.getByDomain(domain);
+        } catch (com.btctech.mailapp.exception.MailException e) {
+            // Create new organization if it doesn't exist
+            org = organizationService.createOrganization(
+                    request.getBusinessName(),
+                    domain
+            );
+        }
 
         // 2. Create User (Owner)
         User user = new User();

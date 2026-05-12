@@ -225,7 +225,7 @@ public class AuthService {
     private void sendOtpEmail(String toAddress, String otp) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("beta@bnxmail.com");
+            message.setFrom("beta@beta-softnet.com");
             message.setTo(toAddress);
             message.setSubject("Your BNX Mail Password Reset OTP");
             message.setText("Your OTP for password reset is: " + otp + "\nThis code will expire in 15 minutes.");

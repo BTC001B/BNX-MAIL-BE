@@ -33,7 +33,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints (no authentication)
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh", "/api/auth/forgot-password/**", "/api/auth/reset-password").permitAll()
+                        .requestMatchers("/api/verification/status/**", "/api/verification/webhook").permitAll()
                         .requestMatchers("/api/oauth/token").permitAll() // ✅ Public token exchange
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(

@@ -51,6 +51,7 @@ public class UserController {
         data.put("name", fullName);
         data.put("email", bnxEmail != null ? bnxEmail : user.getUsername() + "@bnxmail.com");
         data.put("accountType", user.getAccountType());
+        data.put("isPrimary", primaryAccount.isPresent() && primaryAccount.get().getIsPrimary()); // ✅ Fixed getter name
         
         return ResponseEntity.ok(ApiResponse.success(data, "User profile retrieved successfully"));
     }
