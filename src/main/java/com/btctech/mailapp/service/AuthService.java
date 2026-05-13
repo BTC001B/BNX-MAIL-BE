@@ -284,6 +284,24 @@ public class AuthService {
         log.info("✓ OTP verified successfully for: {}", identifier);
     }
 
+    private final com.btctech.mailapp.repository.ExternalAppSessionRepository externalAppSessionRepository;
+
+    /**
+     * Get all external application sessions for current user
+     */
+    public List<com.btctech.mailapp.dto.ExternalSessionResponse> getExternalSessions(User user) {
+        return externalAppSessionRepository.findByUserOrderByLoggedInAtDesc(user).stream()
+                .map(session -> com.btctech.mailapp.dto.ExternalSessionResponse.builder()
+                        .id(session.getId())
+                        .appName(session.getClientApp().getAppName())
+                        .clientId(session.getClientApp().getClientId())
+                        .loggedInAt(session.getLoggedInAt())
+                        .ipAddress(session.getIpAddress())
+                        .userAgent(session.getUserAgent())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     // Helper functions for masking
     private String maskEmail(String email) {
         if (email == null || !email.contains("@")) return null;

@@ -249,4 +249,22 @@ public class AuthController {
         authService.resetPassword(request);
         return ResponseEntity.ok(ApiResponse.success(null, "Password reset successfully"));
     }
+
+    /**
+     * Get all external application sessions (SSO)
+     */
+    @GetMapping("/sessions/external")
+    public ResponseEntity<ApiResponse<java.util.List<com.btctech.mailapp.dto.ExternalSessionResponse>>> getExternalSessions(
+            @RequestHeader("Authorization") String authHeader) {
+        
+        String token = authHeader.substring(7);
+        String email = jwtUtil.extractEmail(token);
+        User user = userService.getUserByEmail(email);
+
+        log.info("Fetching external sessions for user: {}", user.getUsername());
+        java.util.List<com.btctech.mailapp.dto.ExternalSessionResponse> sessions = authService.getExternalSessions(user);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(sessions, "External sessions retrieved successfully"));
+    }
 }

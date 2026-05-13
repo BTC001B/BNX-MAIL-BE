@@ -55,7 +55,8 @@ public class OAuthController {
      */
     @PostMapping("/token")
     public ResponseEntity<ApiResponse<Map<String, String>>> token(
-            @Valid @RequestBody OAuthTokenRequest request) {
+            @Valid @RequestBody OAuthTokenRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
 
         log.info("Token exchange request for client: {}", request.getClientId());
 
@@ -63,10 +64,22 @@ public class OAuthController {
             return ResponseEntity.badRequest().body(ApiResponse.error("Unsupported grant type"));
         }
 
+        // Extract metadata
+        String ipAddress = httpRequest.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            ipAddress = httpRequest.getRemoteAddr();
+        } else {
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+
+        String userAgent = httpRequest.getHeader("User-Agent");
+
         String accessToken = oAuthService.exchangeCodeForToken(
                 request.getCode(),
                 request.getClientId(),
-                request.getClientSecret()
+                request.getClientSecret(),
+                ipAddress,
+                userAgent
         );
 
         Map<String, String> data = new HashMap<>();

@@ -15,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class OAuthService {
 
     private final ClientAppRepository clientAppRepository;
+    private final com.btctech.mailapp.repository.UserRepository userRepository;
+    private final com.btctech.mailapp.repository.ExternalAppSessionRepository externalAppSessionRepository;
     private final JwtUtil jwtUtil;
 
     // In-memory store for authorization codes (code -> data)
@@ -34,7 +36,8 @@ public class OAuthService {
         return code;
     }
 
-    public String exchangeCodeForToken(String code, String clientId, String clientSecret) {
+    @org.springframework.transaction.annotation.Transactional
+    public String exchangeCodeForToken(String code, String clientId, String clientSecret, String ipAddress, String userAgent) {
         AuthCodeData data = codeStore.get(code);
         if (data == null) {
             throw new RuntimeException("Invalid or expired authorization code");
@@ -56,10 +59,24 @@ public class OAuthService {
             throw new RuntimeException("Code was not issued to this client");
         }
 
-        // Remove code after single use
+        // 1. Get User
+        com.btctech.mailapp.entity.User user = userRepository.findByEmail(data.email)
+                .orElseGet(() -> userRepository.findByUsername(data.email)
+                        .orElseThrow(() -> new RuntimeException("User not found")));
+
+        // 2. Record SSO Session
+        com.btctech.mailapp.entity.ExternalAppSession session = com.btctech.mailapp.entity.ExternalAppSession.builder()
+                .user(user)
+                .clientApp(client)
+                .ipAddress(ipAddress)
+                .userAgent(userAgent)
+                .build();
+        externalAppSessionRepository.save(session);
+
+        // 3. Remove code after single use
         codeStore.remove(code);
 
-        // Generate a new long-lived token for the client app
+        // 4. Generate a new long-lived token for the client app
         return jwtUtil.generateToken(data.email);
     }
 
