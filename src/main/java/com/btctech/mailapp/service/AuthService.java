@@ -161,6 +161,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .role(user.getRole())
                 .accountType(user.getAccountType().name())
+                .isPrimary(user.getIsPrimary())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .accessTokenExpiresIn(jwtUtil.getExpirationSeconds(accessToken))

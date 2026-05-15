@@ -289,6 +289,23 @@ CREATE TABLE IF NOT EXISTS verification_sessions (
 ) ENGINE=InnoDB;
 
 -- ==========================================
+-- TABLE: AUTHENTICATOR_ACCOUNTS (For Synced 2FA)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS authenticator_accounts (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    account_name VARCHAR(255) NOT NULL,
+    secret_key VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_user_id (user_id)
+) ENGINE=InnoDB;
+
+-- Add 2FA columns to users if not exists
+ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret VARCHAR(255) NULL;
+
+-- ==========================================
 -- SAMPLE DATA
 -- ==========================================
 INSERT IGNORE INTO users (username, email, password, first_name, last_name, role) 

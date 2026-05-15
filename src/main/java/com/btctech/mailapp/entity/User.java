@@ -69,6 +69,15 @@ public class User {
 
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
+
+    @Column(name = "is_primary")
+    private Boolean isPrimary = false;
+
+    @Column(name = "two_factor_enabled")
+    private Boolean twoFactorEnabled = false;
+
+    @Column(name = "two_factor_secret")
+    private String twoFactorSecret;
     
     @PreUpdate
     public void preUpdate() {

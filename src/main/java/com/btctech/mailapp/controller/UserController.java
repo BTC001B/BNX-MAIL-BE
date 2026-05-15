@@ -51,7 +51,8 @@ public class UserController {
         data.put("name", fullName);
         data.put("email", bnxEmail != null ? bnxEmail : user.getUsername() + "@bnxmail.com");
         data.put("accountType", user.getAccountType());
-        data.put("isPrimary", primaryAccount.isPresent() && primaryAccount.get().getIsPrimary()); // ✅ Fixed getter name
+        data.put("isPrimary", primaryAccount.isPresent() && primaryAccount.get().getIsPrimary());
+        data.put("twoFactorEnabled", user.getTwoFactorEnabled());
         
         return ResponseEntity.ok(ApiResponse.success(data, "User profile retrieved successfully"));
     }
@@ -112,7 +113,7 @@ public class UserController {
                 .fontSize(settings.getFontSize())
                 .density(settings.getDensity())
                 .storageLimit(settings.getStorageLimit())
-                .twoFactorEnabled(settings.getTwoFactorEnabled())
+                .twoFactorEnabled(user.getTwoFactorEnabled())
                 .biometricsEnabled(settings.getBiometricsEnabled())
                 .language(settings.getLanguage())
                 .build();

@@ -33,7 +33,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints (no authentication)
-                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh", "/api/auth/forgot-password/**", "/api/auth/reset-password").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login/**", "/api/auth/refresh", "/api/auth/forgot-password/**", "/api/auth/reset-password").permitAll()
                         .requestMatchers("/api/verification/status/**", "/api/verification/webhook").permitAll()
                         .requestMatchers("/api/oauth/token").permitAll() // ✅ Public token exchange
                         .requestMatchers("/error").permitAll()
@@ -82,7 +82,8 @@ public class SecurityConfig {
             "https://cliks.beta-softnet.com",
             "https://cliksbusiness.com",
             "https://www.bnxmail.com",
-            "https://bnxmail.com"
+            "https://bnxmail.com",
+            "https://account.beta-softnet.com"
         ));
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));

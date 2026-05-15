@@ -15,6 +15,7 @@ public class LoginResponseData {
     private String email;
     private String role;
     private String accountType;
+    private Boolean isPrimary;
 
     private String accessToken;
     private String refreshToken;
