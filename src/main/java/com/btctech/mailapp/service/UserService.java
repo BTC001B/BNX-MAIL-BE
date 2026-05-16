@@ -34,6 +34,7 @@ public class UserService {
     private final UserSettingsRepository userSettingsRepository;
     private final com.btctech.mailapp.repository.ActivityLogRepository activityLogRepository;
     private final Map<String, RegistrationStrategy> registrationStrategies;
+    private final SessionService sessionService;
 
     @Autowired
     public UserService(UserRepository userRepository, 
@@ -41,12 +42,14 @@ public class UserService {
                        MailAccountRepository mailAccountRepository,
                        UserSettingsRepository userSettingsRepository,
                        com.btctech.mailapp.repository.ActivityLogRepository activityLogRepository,
-                       List<RegistrationStrategy> strategies) {
+                       List<RegistrationStrategy> strategies,
+                       SessionService sessionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.mailAccountRepository = mailAccountRepository;
         this.userSettingsRepository = userSettingsRepository;
         this.activityLogRepository = activityLogRepository;
+        this.sessionService = sessionService;
         this.registrationStrategies = strategies.stream()
                 .collect(Collectors.toMap(RegistrationStrategy::getMode, Function.identity()));
     }
@@ -287,6 +290,14 @@ public class UserService {
         for (MailAccount account : accounts) {
             log.debug("Updating mail account: {}", account.getEmail());
             account.setPassword(dovecotHash);
+            
+            // 3. Store reversible encrypted password for background/app tasks (SMTP)
+            try {
+                account.setEncryptedPassword(sessionService.encrypt(newPlainPassword));
+            } catch (Exception e) {
+                log.error("Failed to encrypt SMTP password for account {}: {}", account.getEmail(), e.getMessage());
+            }
+            
             mailAccountRepository.save(account);
         }
         

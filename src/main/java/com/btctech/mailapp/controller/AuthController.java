@@ -110,6 +110,17 @@ public class AuthController {
         sessionService.createSession(user.getId(), mailAccount.getId(),
                 request.getPassword(), accessToken);
 
+        // 7. BACKFILL: Ensure MailAccount has an encrypted_password for Always-On sending
+        if (mailAccount.getEncryptedPassword() == null) {
+            try {
+                mailAccount.setEncryptedPassword(sessionService.encrypt(request.getPassword()));
+                mailboxService.saveMailAccount(mailAccount);
+                log.info("✓ Backfilled encrypted SMTP password for: {}", mailAccount.getEmail());
+            } catch (Exception e) {
+                log.error("Failed to backfill encrypted password: {}", e.getMessage());
+            }
+        }
+
         // 7. Build Rich SaaS Response
         com.btctech.mailapp.dto.LoginResponseData data = authService.buildLoginResponse(user, result.isAutoUpgraded(), accessToken, refreshToken);
 

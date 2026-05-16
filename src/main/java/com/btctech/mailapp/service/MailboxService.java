@@ -27,6 +27,7 @@ public class MailboxService {
     private final DomainRepository domainRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SessionService sessionService;
     
     @Value("${mail.domain}")
     private String mailDomain;
@@ -78,6 +79,13 @@ public class MailboxService {
             mailAccount.setEmail(fullEmail);
             mailAccount.setMaildirPath(maildirPath);
             mailAccount.setPassword(storedPassword);
+
+            // Reversible encryption for always-on SMTP access
+            try {
+                mailAccount.setEncryptedPassword(sessionService.encrypt(plainPassword));
+            } catch (Exception e) {
+                log.error("Failed to encrypt SMTP password during account creation: {}", e.getMessage());
+            }
             
             long limitInBytes = 1073741824L; // 1GB
             if (com.btctech.mailapp.entity.AccountType.BUSINESS.equals(user.getAccountType())) {
@@ -191,7 +199,7 @@ public class MailboxService {
         User user = userRepo.findById(userId).orElseThrow();
         user.setEmail(primary.getEmail());
         userRepo.save(user);
-
+ 
         log.info("✓ Successfully updated primary email to: {}", primary.getEmail());
     }
 
@@ -200,5 +208,10 @@ public class MailboxService {
             return mailAccountRepository.findByEmailEndingWith("@" + domain);
         }
         return mailAccountRepository.findAll();
+    }
+
+    @Transactional
+    public void saveMailAccount(MailAccount account) {
+        mailAccountRepository.save(account);
     }
 }

@@ -1,8 +1,10 @@
 package com.btctech.mailapp.service;
 
+import com.btctech.mailapp.dto.BulkMailRequest;
 import com.btctech.mailapp.dto.SendMailRequest;
 import com.btctech.mailapp.dto.AttachmentInfo;
 import com.btctech.mailapp.exception.MailException;
+import org.springframework.scheduling.annotation.Async;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
@@ -121,6 +123,56 @@ public class MailSendService {
         } catch (Exception e) {
             log.error("Unexpected error sending email: {}", e.getMessage());
             throw new MailException("Unexpected error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Send bulk emails asynchronously to a list of recipients.
+     */
+    @Async
+    public void sendBulkMail(String fromEmail, String password, BulkMailRequest request) {
+        log.info("Starting asynchronous bulk email send from {} to {} recipients", fromEmail, request.getRecipients().size());
+        
+        if (password == null || password.isEmpty()) {
+            log.error("Bulk send failed: Password not found in session for {}", fromEmail);
+            return;
+        }
+
+        try {
+            Properties props = new Properties();
+            props.put("mail.smtp.host", smtpHost);
+            props.put("mail.smtp.port", String.valueOf(smtpPort));
+            props.put("mail.smtp.auth", "false");
+            props.put("mail.smtp.starttls.enable", "false");
+            props.put("mail.smtp.timeout", "10000");
+
+            Session session = Session.getInstance(props);
+
+            for (String recipient : request.getRecipients()) {
+                try {
+                    MimeMessage message = new MimeMessage(session);
+                    message.setFrom(new InternetAddress(fromEmail));
+                    message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
+                    message.setSubject(request.getSubject());
+
+                    if (request.getIsHtml() != null && request.getIsHtml()) {
+                        message.setContent(request.getBody(), "text/html; charset=utf-8");
+                    } else {
+                        message.setText(request.getBody(), "utf-8");
+                    }
+
+                    Transport.send(message);
+                    log.info("✓ Bulk item sent to {}", recipient);
+
+                    // Anti-spam delay: 500ms between emails
+                    Thread.sleep(500);
+                } catch (Exception e) {
+                    log.error("Failed to send bulk email to {}: {}", recipient, e.getMessage());
+                }
+            }
+            log.info("✓ Finished bulk email send process for {}", fromEmail);
+        } catch (Exception e) {
+            log.error("Critical error in bulk send for {}: {}", fromEmail, e.getMessage());
         }
     }
 

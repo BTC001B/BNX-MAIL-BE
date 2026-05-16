@@ -30,6 +30,9 @@ public class MailAccount {
     @Column(name = "password")
     private String password;
 
+    @Column(name = "encrypted_password")
+    private String encryptedPassword;
+
     @Column(name = "quota")
     private Long quota;
 

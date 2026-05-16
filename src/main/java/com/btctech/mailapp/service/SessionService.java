@@ -140,9 +140,9 @@ public class SessionService {
     }
     
     /**
-     * Encrypt password using AES
+     * Encrypt text using AES
      */
-    private String encrypt(String plainText) throws Exception {
+    public String encrypt(String plainText) throws Exception {
         SecretKeySpec key = new SecretKeySpec(encryptionKey.getBytes(), "AES");
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(Cipher.ENCRYPT_MODE, key);
@@ -151,9 +151,9 @@ public class SessionService {
     }
     
     /**
-     * Decrypt password using AES
+     * Decrypt text using AES
      */
-    private String decrypt(String encryptedText) throws Exception {
+    public String decrypt(String encryptedText) throws Exception {
         SecretKeySpec key = new SecretKeySpec(encryptionKey.getBytes(), "AES");
         Cipher cipher = Cipher.getInstance("AES");
         cipher.init(Cipher.DECRYPT_MODE, key);
