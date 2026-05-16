@@ -2,6 +2,8 @@ package com.btctech.mailapp.controller;
 
 import com.btctech.mailapp.dto.ApiResponse;
 import com.btctech.mailapp.entity.User;
+import com.btctech.mailapp.entity.MailAccount;
+import com.btctech.mailapp.entity.UserSettings;
 import com.btctech.mailapp.service.UserService;
 import com.btctech.mailapp.config.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -33,7 +36,7 @@ public class UserController {
         User user = userService.getUserByEmailOrUsername(identifier);
         
         // Find primary BNX Mail
-        String bnxEmail = user.getEmail(); // Fallback to user email field
+        String bnxEmail = user.getEmail();
         var primaryAccount = mailAccountRepository.findByUserIdAndIsPrimary(user.getId(), true)
                 .or(() -> mailAccountRepository.findByUserId(user.getId()).stream().findFirst());
         
@@ -48,11 +51,33 @@ public class UserController {
 
         Map<String, Object> data = new HashMap<>();
         data.put("id", user.getId());
-        data.put("name", fullName);
+        data.put("username", user.getUsername());
+        data.put("firstName", user.getFirstName());
+        data.put("lastName", user.getLastName());
+        data.put("fullName", fullName);
         data.put("email", bnxEmail != null ? bnxEmail : user.getUsername() + "@bnxmail.com");
+        data.put("recoveryEmail", user.getRecoveryEmail());
+        data.put("phoneNumber", user.getPhoneNumber());
+        data.put("dob", user.getDob());
         data.put("accountType", user.getAccountType());
         data.put("isPrimary", primaryAccount.isPresent() && primaryAccount.get().getIsPrimary());
         data.put("twoFactorEnabled", user.getTwoFactorEnabled());
+        data.put("createdAt", user.getCreatedAt());
+        
+        // Add storage info
+        UserSettings settings = userService.getSettings(user);
+        List<MailAccount> allAccounts = mailAccountRepository.findByUserId(user.getId());
+        long totalUsed = allAccounts.stream().mapToLong(MailAccount::getStorageUsed).sum();
+        
+        data.put("storageUsed", totalUsed);
+        data.put("storageLimit", settings.getStorageLimit());
+        
+        if (user.getOrganization() != null) {
+            Map<String, Object> org = new HashMap<>();
+            org.put("id", user.getOrganization().getId());
+            org.put("name", user.getOrganization().getName());
+            data.put("organization", org);
+        }
         
         return ResponseEntity.ok(ApiResponse.success(data, "User profile retrieved successfully"));
     }

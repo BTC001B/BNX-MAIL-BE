@@ -10,10 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Transactional
 @RestController
 @RequestMapping("/api/users/2fa")
 public class TwoFactorController {
@@ -97,7 +99,13 @@ public class TwoFactorController {
                 .or(() -> userRepository.findByEmail(principal))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<AuthenticatorAccount> accounts = authenticatorAccountRepository.findByUser(user);
+        List<AuthenticatorAccount> accounts = new java.util.ArrayList<>(authenticatorAccountRepository.findByUser(user));
+        
+        // Filter out BNX Auth account if 2FA is disabled for current user
+        if (!Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            String bnxAuthName = "BNX Auth (" + user.getEmail() + ")";
+            accounts.removeIf(acc -> bnxAuthName.equals(acc.getAccountName()));
+        }
         
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -125,6 +133,46 @@ public class TwoFactorController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
+        return ResponseEntity.ok(response);
+    }
+    
+    @PostMapping("/disable")
+    public ResponseEntity<?> disable2FA(@AuthenticationPrincipal String principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("success", false, "message", "Unauthorized"));
+        }
+        User user = userRepository.findByUsername(principal)
+                .or(() -> userRepository.findByEmail(principal))
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setTwoFactorEnabled(false);
+        userRepository.save(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "2FA disabled successfully");
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/enable")
+    public ResponseEntity<?> enable2FA(@AuthenticationPrincipal String principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("success", false, "message", "Unauthorized"));
+        }
+        User user = userRepository.findByUsername(principal)
+                .or(() -> userRepository.findByEmail(principal))
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (user.getTwoFactorSecret() == null) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "No 2FA setup found"));
+        }
+
+        user.setTwoFactorEnabled(true);
+        userRepository.save(user);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "2FA enabled successfully");
         return ResponseEntity.ok(response);
     }
 }

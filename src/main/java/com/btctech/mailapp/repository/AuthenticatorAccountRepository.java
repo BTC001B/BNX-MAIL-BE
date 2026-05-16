@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface AuthenticatorAccountRepository extends JpaRepository<AuthenticatorAccount, Long> {
     List<AuthenticatorAccount> findByUser(User user);
+    void deleteByUserIdAndAccountName(Long userId, String accountName);
 }
