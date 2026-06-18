@@ -29,6 +29,8 @@ public class UserSettingsDTO {
     private Double fontSize;
     private String density;
     
+    private String profilePictureUrl;
+    
     private Long storageLimit;
     private Long storageUsed;
 

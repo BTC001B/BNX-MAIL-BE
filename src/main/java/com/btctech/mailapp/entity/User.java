@@ -78,6 +78,9 @@ public class User {
 
     @Column(name = "two_factor_secret")
     private String twoFactorSecret;
+
+    @Column(name = "profile_picture", length = 255)
+    private String profilePicture;
     
     @PreUpdate
     public void preUpdate() {

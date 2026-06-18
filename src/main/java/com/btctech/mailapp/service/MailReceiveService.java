@@ -688,6 +688,11 @@ public class MailReceiveService {
             } else {
                 dto.setFrom(addr.toString());
             }
+            // Populate avatar URL based on sender's email address
+            String cleanFrom = extractEmailAddress(dto.getFrom());
+            if (cleanFrom != null) {
+                dto.setAvatarUrl("/api/users/profile-picture/" + cleanFrom);
+            }
         }
 
         Address[] to = message.getRecipients(Message.RecipientType.TO);
@@ -741,6 +746,14 @@ public class MailReceiveService {
                 .collect(java.util.stream.Collectors.toList()));
 
         return dto;
+    }
+
+    private String extractEmailAddress(String fromHeader) {
+        if (fromHeader == null) return null;
+        if (fromHeader.contains("<") && fromHeader.contains(">")) {
+            return fromHeader.substring(fromHeader.indexOf("<") + 1, fromHeader.indexOf(">")).trim();
+        }
+        return fromHeader.trim();
     }
 
 

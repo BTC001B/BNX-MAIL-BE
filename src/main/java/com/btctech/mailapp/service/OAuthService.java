@@ -27,7 +27,18 @@ public class OAuthService {
         ClientApp client = clientAppRepository.findByClientId(clientId)
                 .orElseThrow(() -> new RuntimeException("Invalid client_id"));
 
-        if (!client.getRedirectUri().equals(redirectUri)) {
+        String configuredUri = client.getRedirectUri();
+        boolean match = configuredUri.equals(redirectUri);
+        if (!match && configuredUri.contains(",")) {
+            for (String uri : configuredUri.split(",")) {
+                if (uri.trim().equals(redirectUri)) {
+                    match = true;
+                    break;
+                }
+            }
+        }
+
+        if (!match) {
             throw new RuntimeException("Invalid redirect_uri");
         }
 

@@ -166,6 +166,8 @@ public class AuthService {
                 .refreshToken(refreshToken)
                 .accessTokenExpiresIn(jwtUtil.getExpirationSeconds(accessToken))
                 .refreshTokenExpiresIn(jwtUtil.getExpirationSeconds(refreshToken))
+                .profilePicture(user.getProfilePicture())
+                .profilePictureUrl(user.getProfilePicture() != null ? "/api/users/profile-picture/" + user.getUsername() : null)
                 .mailboxes(boxSummaries)
                 .isAutoUpgraded(autoUpgraded)
                 .loginAt(LocalDateTime.now())

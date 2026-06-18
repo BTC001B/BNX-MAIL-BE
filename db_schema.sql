@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL,
+    profile_picture VARCHAR(255) NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE SET NULL,
     FOREIGN KEY (parent_user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_username (username),
@@ -98,6 +99,7 @@ CREATE TABLE IF NOT EXISTS mail_accounts (
     storage_limit BIGINT DEFAULT 1073741824,
     storage_used BIGINT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    profile_picture VARCHAR(255) NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_user_id (user_id),
     INDEX idx_email (email_address)

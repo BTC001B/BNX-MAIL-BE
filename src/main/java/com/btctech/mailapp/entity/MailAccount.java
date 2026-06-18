@@ -53,6 +53,9 @@ public class MailAccount {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "profile_picture", length = 255)
+    private String profilePicture;
+
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();

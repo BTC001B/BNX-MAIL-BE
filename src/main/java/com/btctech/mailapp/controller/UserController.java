@@ -57,6 +57,8 @@ public class UserController {
         data.put("fullName", fullName);
         data.put("email", bnxEmail != null ? bnxEmail : user.getUsername() + "@bnxmail.com");
         data.put("recoveryEmail", user.getRecoveryEmail());
+        data.put("profilePicture", user.getProfilePicture());
+        data.put("profilePictureUrl", user.getProfilePicture() != null ? "/api/users/profile-picture/" + user.getUsername() : null);
         data.put("phoneNumber", user.getPhoneNumber());
         data.put("dob", user.getDob());
         data.put("accountType", user.getAccountType());
@@ -137,6 +139,7 @@ public class UserController {
                 .accentColor(settings.getAccentColor())
                 .fontSize(settings.getFontSize())
                 .density(settings.getDensity())
+                .profilePictureUrl(user.getProfilePicture() != null ? "/api/users/profile-picture/" + user.getUsername() : null)
                 .storageLimit(settings.getStorageLimit())
                 .twoFactorEnabled(user.getTwoFactorEnabled())
                 .biometricsEnabled(settings.getBiometricsEnabled())
@@ -202,6 +205,7 @@ public class UserController {
                 .accentColor(saved.getAccentColor())
                 .fontSize(saved.getFontSize())
                 .density(saved.getDensity())
+                .profilePictureUrl(user.getProfilePicture() != null ? "/api/users/profile-picture/" + user.getUsername() : null)
                 .storageLimit(saved.getStorageLimit())
                 .twoFactorEnabled(saved.getTwoFactorEnabled())
                 .biometricsEnabled(saved.getBiometricsEnabled())

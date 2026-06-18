@@ -18,6 +18,7 @@ public class EmailDTO {
     private String uid;
     private String messageId;
     private String from;
+    private String avatarUrl;
     private String to;
     private String subject;
     private String body;

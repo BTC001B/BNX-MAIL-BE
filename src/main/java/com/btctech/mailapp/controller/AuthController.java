@@ -316,4 +316,97 @@ public class AuthController {
         return ResponseEntity.ok(
                 ApiResponse.success(sessions, "External sessions retrieved successfully"));
     }
+    /**
+     * Recovery Path: Send OTP to email when 2FA device is lost
+     */
+    @PostMapping("/login/2fa/send-otp")
+    public ResponseEntity<ApiResponse<Map<String, String>>> send2faRecoveryOtp(
+            @RequestBody Map<String, String> request) {
+        
+        String tempToken = request.get("tempToken");
+        if (tempToken == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Missing temporary token"));
+        }
+
+        try {
+            String subject = jwtUtil.extractEmail(tempToken);
+            String email = subject.startsWith("2fa_") ? subject.substring(4) : subject;
+            
+            // Re-use SendOtpRequest DTO logic
+            com.btctech.mailapp.dto.SendOtpRequest otpRequest = new com.btctech.mailapp.dto.SendOtpRequest();
+            otpRequest.setIdentifier(email);
+            otpRequest.setMethod("EMAIL");
+            
+            authService.sendRecoveryOtp(otpRequest);
+            
+            log.info("✓ 2FA recovery OTP sent to {}", email);
+            return ResponseEntity.ok(ApiResponse.success(null, "Recovery code sent to your email"));
+            
+        } catch (Exception e) {
+            log.error("Failed to send 2FA recovery OTP: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to send recovery code: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Recovery Path: Verify OTP and login
+     */
+    @PostMapping("/login/2fa/verify-otp")
+    public ResponseEntity<ApiResponse<LoginResponseData>> verify2faRecoveryOtp(
+            @RequestBody Map<String, String> request,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        
+        String tempToken = request.get("tempToken");
+        String otp = request.get("otp");
+        
+        if (tempToken == null || otp == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Missing token or OTP"));
+        }
+
+        try {
+            String subject = jwtUtil.extractEmail(tempToken);
+            String email = subject.startsWith("2fa_") ? subject.substring(4) : subject;
+            
+            // 1. Verify OTP
+            authService.verifyOtp(email, otp);
+            
+            // 2. OTP is valid! Proceed with login (Bypass 2FA)
+            User user = userService.getUserByEmailOrUsername(email);
+            
+            // Standard login metadata extraction
+            String ipAddress = httpRequest.getHeader("X-Forwarded-For");
+            if (ipAddress == null || ipAddress.isEmpty()) {
+                ipAddress = httpRequest.getRemoteAddr();
+            } else {
+                ipAddress = ipAddress.split(",")[0].trim();
+            }
+            String userAgent = httpRequest.getHeader("User-Agent");
+
+            // Generate Dual Tokens
+            String accessToken = jwtUtil.generateToken(email);
+            String refreshToken = authService.createRefreshToken(user, ipAddress, userAgent);
+
+            // Create session
+            MailAccount mailAccount = mailboxService.getMailAccountByEmail(email);
+            
+            // Use persistent password if available (Always-On)
+            String password = null;
+            if (mailAccount.getEncryptedPassword() != null) {
+                password = sessionService.decrypt(mailAccount.getEncryptedPassword());
+            }
+            
+            if (password != null) {
+                sessionService.createSession(user.getId(), mailAccount.getId(), password, accessToken);
+            }
+
+            LoginResponseData data = authService.buildLoginResponse(user, false, accessToken, refreshToken);
+            log.info("✓ User {} logged in via 2FA Email Recovery", email);
+            
+            return ResponseEntity.ok(ApiResponse.success(data, "Login successful via recovery"));
+            
+        } catch (Exception e) {
+            log.error("2FA OTP verification failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error("Verification failed: " + e.getMessage()));
+        }
+    }
 }

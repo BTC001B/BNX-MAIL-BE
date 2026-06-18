@@ -21,6 +21,9 @@ public class LoginResponseData {
     private String refreshToken;
     private Long accessTokenExpiresIn;
     private Long refreshTokenExpiresIn;
+    
+    private String profilePicture;
+    private String profilePictureUrl;
 
     private List<MailboxSummary> mailboxes;
 

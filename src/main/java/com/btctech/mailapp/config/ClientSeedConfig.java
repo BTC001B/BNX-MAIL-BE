@@ -74,6 +74,25 @@ public class ClientSeedConfig {
                     log.info("Test OAuth client seeded: cliks-business");
                 }
             );
+
+            clientAppRepository.findByClientId("beta_website").ifPresentOrElse(
+                client -> {
+                    log.info("Updating beta_website OAuth client redirect URI...");
+                    client.setRedirectUri("https://www.beta-softnet.com/,https://beta-softnet.com/");
+                    clientAppRepository.save(client);
+                },
+                () -> {
+                    log.info("Seeding beta_website OAuth client...");
+                    ClientApp client = ClientApp.builder()
+                            .clientId("beta_website")
+                            .clientSecret("secure-beta-secret-2026")
+                            .appName("Beta Website")
+                            .redirectUri("https://www.beta-softnet.com/,https://beta-softnet.com/")
+                            .build();
+                    clientAppRepository.save(client);
+                    log.info("Test OAuth client seeded: beta_website");
+                }
+            );
         };
     }
 }
