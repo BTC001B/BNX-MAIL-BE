@@ -834,7 +834,13 @@ public class MailReceiveService {
     private String[] extractContent(Message message) throws MessagingException, IOException {
         String plain = ""; String html = "";
         Object content = message.getContent();
-        if (content instanceof String) plain = (String) content;
+        if (content instanceof String) {
+            if (message.isMimeType("text/html")) {
+                html = (String) content;
+            } else {
+                plain = (String) content;
+            }
+        }
         else if (content instanceof Multipart) {
             Multipart mp = (Multipart) content;
             for (int i = 0; i < mp.getCount(); i++) {

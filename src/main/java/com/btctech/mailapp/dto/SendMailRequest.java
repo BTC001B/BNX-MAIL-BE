@@ -1,5 +1,6 @@
 package com.btctech.mailapp.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
@@ -23,7 +24,20 @@ public class SendMailRequest {
     @NotBlank(message = "Email body is required")
     private String body;
 
+    private String fromName;
+
+    @JsonProperty("isHtml")
     private Boolean isHtml = false;
+
+    @JsonProperty("isHtml")
+    public Boolean getIsHtml() {
+        return isHtml;
+    }
+
+    @JsonProperty("isHtml")
+    public void setIsHtml(Boolean isHtml) {
+        this.isHtml = isHtml;
+    }
 
     private java.util.List<AttachmentInfo> attachments;
 }

@@ -78,7 +78,7 @@ public class ClientSeedConfig {
             clientAppRepository.findByClientId("beta_website").ifPresentOrElse(
                 client -> {
                     log.info("Updating beta_website OAuth client redirect URI...");
-                    client.setRedirectUri("https://www.beta-softnet.com/,https://beta-softnet.com/");
+                    client.setRedirectUri("https://www.beta-softnet.com/,https://beta-softnet.com/,https://www.beta-softnet.com,https://beta-softnet.com,http://localhost:5173,http://localhost:5173/");
                     clientAppRepository.save(client);
                 },
                 () -> {
@@ -87,7 +87,7 @@ public class ClientSeedConfig {
                             .clientId("beta_website")
                             .clientSecret("secure-beta-secret-2026")
                             .appName("Beta Website")
-                            .redirectUri("https://www.beta-softnet.com/,https://beta-softnet.com/")
+                            .redirectUri("https://www.beta-softnet.com/,https://beta-softnet.com/,https://www.beta-softnet.com,https://beta-softnet.com,http://localhost:5173,http://localhost:5173/")
                             .build();
                     clientAppRepository.save(client);
                     log.info("Test OAuth client seeded: beta_website");

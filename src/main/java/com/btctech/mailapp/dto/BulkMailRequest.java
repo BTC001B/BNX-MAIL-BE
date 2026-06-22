@@ -1,5 +1,6 @@
 package com.btctech.mailapp.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.util.List;
@@ -17,7 +18,18 @@ public class BulkMailRequest {
     @NotBlank(message = "Email body is required")
     private String body;
 
+    @JsonProperty("isHtml")
     private Boolean isHtml = true;
+
+    @JsonProperty("isHtml")
+    public Boolean getIsHtml() {
+        return isHtml;
+    }
+
+    @JsonProperty("isHtml")
+    public void setIsHtml(Boolean isHtml) {
+        this.isHtml = isHtml;
+    }
     
     private List<AttachmentInfo> attachments;
 }

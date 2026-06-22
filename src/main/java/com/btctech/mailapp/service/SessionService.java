@@ -47,7 +47,7 @@ public class SessionService {
             session.setMailAccountId(mailAccountId);
             session.setEncryptedPassword(encryptedPassword);
             session.setJwtToken(jwtToken);
-            session.setExpiresAt(LocalDateTime.now().plusDays(1)); // 24 hours
+            session.setExpiresAt(LocalDateTime.now().plusDays(30)); // 30 days
             
             session = sessionRepository.save(session);
             log.info("Created session for user: {} (mail_account: {})", userId, mailAccountId);

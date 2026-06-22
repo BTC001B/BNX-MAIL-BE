@@ -98,6 +98,61 @@ public class MailSendController {
     }
 
     /**
+     * Public email send endpoint for external services (like job applicant confirmation).
+     * Protected by a backend-to-backend API Token header "X-Public-Mail-Token".
+     */
+    @PostMapping("/public/send")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> sendPublicMail(
+            @Valid @RequestBody SendMailRequest request,
+            @RequestHeader(value = "X-Public-Mail-Token", required = false) String apiToken) {
+
+        log.info("Public send request received to: {}, isHtml: {}", request.getTo(), request.getIsHtml());
+        try {
+            // Verify public token
+            String expectedToken = "secure-beta-to-bnx-secret-2026";
+            if (apiToken == null || !apiToken.equals(expectedToken)) {
+                log.warn("✗ Unauthorized public send request: Invalid or missing X-Public-Mail-Token");
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Unauthorized: Invalid API Token"));
+            }
+
+            // Public sending is on behalf of beta@bnxmail.com
+            String fromEmail = "beta@bnxmail.com";
+
+            // Attempt to retrieve password for IMAP Sent archiving (optional)
+            String password = null;
+            try {
+                MailAccount mailAccount = mailboxService.getMailAccountByEmail(fromEmail);
+                if (mailAccount != null && mailAccount.getEncryptedPassword() != null) {
+                    password = sessionService.decrypt(mailAccount.getEncryptedPassword());
+                    log.info("✓ Decrypted password for IMAP Sent archival for {}", fromEmail);
+                }
+            } catch (Exception e) {
+                log.warn("Could not retrieve password for {} (archival copy will be skipped): {}", fromEmail, e.getMessage());
+            }
+
+            // Send mail (MailSendService handles sending with null password safely)
+            mailSendService.sendMail(fromEmail, password, request);
+
+            // Response payload
+            Map<String, Object> data = new HashMap<>();
+            data.put("from", fromEmail);
+            data.put("to", request.getTo());
+            data.put("subject", request.getSubject());
+            data.put("sentAt", System.currentTimeMillis());
+
+            log.info("✓ Public email sent successfully from {} to {}", fromEmail, request.getTo());
+
+            return ResponseEntity.ok(ApiResponse.success(data, "Email sent successfully"));
+
+        } catch (Exception e) {
+            log.error("Failed to send public email: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error("Failed to send public email: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Bulk send endpoint for marketing/offers.
      * Processes asynchronously.
      */

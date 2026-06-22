@@ -45,10 +45,6 @@ public class MailSendService {
         
         log.info("Attempting to send email from {} to {}", fromEmail, request.getTo());
         
-        if (password == null || password.isEmpty()) {
-            throw new MailException("Password not found in session");
-        }
-        
         try {
             Properties props = new Properties();
             props.put("mail.smtp.host", smtpHost);
@@ -63,7 +59,14 @@ public class MailSendService {
             
             Session session = Session.getInstance(props);
             MimeMessage message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(fromEmail));
+            
+            InternetAddress fromAddress;
+            if (request.getFromName() != null && !request.getFromName().isEmpty()) {
+                fromAddress = new InternetAddress(fromEmail, request.getFromName(), "UTF-8");
+            } else {
+                fromAddress = new InternetAddress(fromEmail);
+            }
+            message.setFrom(fromAddress);
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(request.getTo()));
             
             if (request.getCc() != null && !request.getCc().isEmpty()) {
@@ -115,7 +118,11 @@ public class MailSendService {
             log.info("✓ Email sent successfully from {} to {}", fromEmail, request.getTo());
             
             // Archival process (IMAP "Sent" folder)
-            saveCopyToSent(fromEmail, password, message);
+            if (password != null && !password.isEmpty()) {
+                saveCopyToSent(fromEmail, password, message);
+            } else {
+                log.info("Skipping Sent folder IMAP archival (no password provided / public send)");
+            }
             
         } catch (MessagingException e) {
             log.error("Failed to send email from {} to {}: {}", fromEmail, request.getTo(), e.getMessage());
