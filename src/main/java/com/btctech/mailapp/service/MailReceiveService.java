@@ -942,6 +942,7 @@ public class MailReceiveService {
     private String categorizeEmail(Message message) {
         if (message == null) return "PRIMARY";
         try {
+            // --- Phase 1: Extract Base Data & Headers ---
             String subject = "";
             try { 
                 subject = message.getSubject() != null ? message.getSubject().toUpperCase() : "";
@@ -950,51 +951,76 @@ public class MailReceiveService {
             }
 
             String from = "";
+            String fromLocal = "";
+            String fromDomain = "";
             try {
                 Address[] fromAddresses = message.getFrom();
                 if (fromAddresses != null && fromAddresses.length > 0) {
                     from = fromAddresses[0].toString().toLowerCase();
+                    // Extract local and domain
+                    String cleanFrom = extractEmailAddress(from);
+                    if (cleanFrom != null && cleanFrom.contains("@")) {
+                        String[] parts = cleanFrom.split("@");
+                        if (parts.length == 2) {
+                            fromLocal = parts[0];
+                            fromDomain = parts[1];
+                        }
+                    }
                 }
             } catch (Exception e) {
                 log.debug("Could not read sender for categorization: {}", e.getMessage());
             }
 
-            // 0. Spam Detection (Highest Priority)
+            // Extract headers
+            boolean hasUnsubscribe = false;
+            boolean isBulk = false;
+            boolean isAutoSubmitted = false;
+            try {
+                String[] unsubHeaders = message.getHeader("List-Unsubscribe");
+                if (unsubHeaders != null && unsubHeaders.length > 0) hasUnsubscribe = true;
+
+                String[] precHeaders = message.getHeader("Precedence");
+                if (precHeaders != null && precHeaders.length > 0) {
+                    for (String h : precHeaders) {
+                        if (h.toLowerCase().contains("bulk") || h.toLowerCase().contains("list")) isBulk = true;
+                    }
+                }
+
+                String[] autoHeaders = message.getHeader("Auto-Submitted");
+                if (autoHeaders != null && autoHeaders.length > 0) {
+                    for (String h : autoHeaders) {
+                        if (h.toLowerCase().contains("auto-generated") || h.toLowerCase().contains("auto-replied")) isAutoSubmitted = true;
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("Could not read headers for categorization: {}", e.getMessage());
+            }
+
+            // --- Phase 2: Waterfall Classification ---
+
+            // 1. SPAM Detection (Highest Priority)
             if (subject.contains("LOTTERY") || subject.contains("WINNER") || 
                 subject.contains("INHERITANCE") || subject.contains("VIAGRA") || 
                 subject.contains("CASINO") || subject.contains("JACKPOT") ||
-                subject.contains("URGENT ACTION REQUIRED") || subject.contains("ACCOUNT SUSPENDED")) {
+                subject.contains("URGENT ACTION REQUIRED") || subject.contains("ACCOUNT SUSPENDED") ||
+                subject.contains("YOU'VE WON")) {
                 return "SPAM";
             }
 
-            // 1. Social
-            if (from.contains("facebook.com") || from.contains("instagram.com") || 
-                from.contains("linkedin.com") || from.contains("twitter.com") || 
-                from.contains("t.co") || from.contains("fb.com") || from.contains("social")) {
+            // 2. SOCIAL Check
+            if (fromDomain.contains("facebook.com") || fromDomain.contains("instagram.com") || 
+                fromDomain.contains("linkedin.com") || fromDomain.contains("twitter.com") || 
+                fromDomain.contains("t.co") || fromDomain.contains("tiktok.com") || 
+                fromDomain.contains("pinterest.com") || fromDomain.contains("tumblr.com") ||
+                fromLocal.equals("notification") && fromDomain.contains("social")) {
                 return "SOCIAL";
             }
 
-            // 2. Purchases
-            if (subject.contains("ORDER") || subject.contains("INVOICE") || 
-                subject.contains("RECEIPT") || subject.contains("PURCHASE") || 
-                subject.contains("AMAZON") || subject.contains("FLIPKART") ||
-                subject.contains("BILL") || subject.contains("PAYMENT")) {
-                return "PURCHASES";
-            }
-
-            // 3. Updates (System/Alerts/Bounces)
-            if (subject.contains("OTP") || subject.contains("VERIFICATION") || 
-                subject.contains("PASSWORD") || subject.contains("SHIPPED") || 
-                subject.contains("ALERT") || subject.contains("SECURITY") ||
-                subject.contains("ACCOUNT") || subject.contains("LOGIN") ||
-                subject.contains("UNDELIVERED") || subject.contains("RETURNED TO SENDER") ||
-                from.contains("mailer-daemon") || from.contains("postmaster")) {
-                return "UPDATES";
-            }
-
-            // 4. Promotions (Marketing)
-            String[] unsubscribe = message.getHeader("List-Unsubscribe");
-            if ((unsubscribe != null && unsubscribe.length > 0) || 
+            // 3. PROMOTIONS Check
+            // Strongly relies on bulk mailing headers or marketing sender prefixes
+            if (hasUnsubscribe || isBulk || 
+                fromLocal.contains("newsletter") || fromLocal.contains("marketing") || 
+                fromLocal.contains("offers") || fromLocal.contains("sales") ||
                 subject.contains("SALE") || subject.contains("OFFER") || 
                 subject.contains("DISCOUNT") || subject.contains("DEAL") || 
                 subject.contains("PROMOTION") || subject.contains("LIMITED TIME") ||
@@ -1002,7 +1028,33 @@ public class MailReceiveService {
                 return "PROMOTIONS";
             }
 
-            // 5. Default: Primary
+            // 4. PURCHASES Check
+            // Must have transaction keywords, usually from automated addresses
+            if (subject.contains("RECEIPT") || subject.contains("INVOICE") || 
+                subject.contains("ORDER") || subject.contains("YOUR ORDER") || 
+                subject.contains("PAYMENT") || subject.contains("SHIPPED") ||
+                subject.contains("AMAZON") || subject.contains("FLIPKART") ||
+                subject.contains("BILL") || subject.contains("DELIVERY")) {
+                return "PURCHASES";
+            }
+
+            // 5. UPDATES Check
+            // Automated system alerts, password resets, verification codes
+            if (isAutoSubmitted || 
+                fromLocal.equals("no-reply") || fromLocal.equals("noreply") || 
+                fromLocal.equals("donotreply") || fromLocal.equals("support") || 
+                fromLocal.equals("alerts") || fromLocal.equals("system") ||
+                subject.contains("OTP") || subject.contains("VERIFICATION") || 
+                subject.contains("PASSWORD") || subject.contains("ALERT") || 
+                subject.contains("SECURITY") || subject.contains("ACCOUNT") || 
+                subject.contains("LOGIN") || subject.contains("UNDELIVERED") || 
+                subject.contains("RETURNED TO SENDER") ||
+                from.contains("mailer-daemon") || from.contains("postmaster")) {
+                return "UPDATES";
+            }
+
+            // 6. DEFAULT: PRIMARY
+            // Direct human-to-human correspondence
             return "PRIMARY";
 
         } catch (Exception e) {
