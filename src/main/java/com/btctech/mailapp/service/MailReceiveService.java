@@ -71,6 +71,8 @@ public class MailReceiveService {
                 actualFolderName = resolveSnoozedFolderName(store);
             } else if ("Archive".equalsIgnoreCase(folderName)) {
                 actualFolderName = resolveArchiveFolderName(store);
+            } else if ("Drafts".equalsIgnoreCase(folderName) || "Draft".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveDraftsFolderName(store);
             }
 
 
@@ -119,6 +121,10 @@ public class MailReceiveService {
 
     public List<EmailDTO> getInbox(String email, String password, int limit) {
         return getEmailsFromFolder(email, password, "INBOX", limit);
+    }
+
+    public List<EmailDTO> getDrafts(String email, String password, int limit) {
+        return getEmailsFromFolder(email, password, "Drafts", limit);
     }
 
     public List<EmailDTO> getSent(String email, String password, int limit) {
@@ -663,7 +669,31 @@ public class MailReceiveService {
         return "Archive";
     }
 
-
+    public String resolveDraftsFolderName(Store store) throws MessagingException {
+        String[] candidates = {
+            "Drafts", "DRAFTS", "Draft", "Draft Messages", 
+            "INBOX.Drafts", "INBOX/Drafts", "[Gmail]/Drafts", "Drafts Items",
+            "INBOX.Draft", "INBOX/Draft", "Drafts messages"
+        };
+        for (String name : candidates) {
+            try { 
+                Folder f = store.getFolder(name);
+                if (f.exists()) return name; 
+            } catch (Exception e) {
+                log.debug("Folder candidate '{}' check failed: {}", name, e.getMessage());
+            }
+        }
+        try {
+            Folder[] folders = store.getDefaultFolder().list("*");
+            for (Folder f : folders) {
+                String name = f.getFullName();
+                if (name.equalsIgnoreCase("Drafts") || name.toUpperCase().contains("DRAFT")) return name;
+            }
+        } catch (MessagingException e) {
+            log.warn("Failed to list all folders for drafts resolution, falling back to 'Drafts'");
+        }
+        return "Drafts";
+    }
 
     public String resolveSentFolderName(Store store) throws MessagingException {
         // Broad list of shared folder names across various IMAP servers

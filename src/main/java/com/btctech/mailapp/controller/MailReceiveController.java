@@ -488,6 +488,51 @@ public class MailReceiveController {
         }
     }
 
+    /**
+     * Get drafts from IMAP server
+     */
+    @GetMapping("/draft")
+    public ResponseEntity<ApiResponse<InboxResponse>> getDrafts(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Get drafts request from: {}", email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            List<EmailDTO> emails = mailReceiveService.getDrafts(email, password, limit);
+            if (emails == null) emails = new java.util.ArrayList<>();
+
+            InboxResponse response = InboxResponse.builder()
+                    .email(email)
+                    .totalCount(emails.size())
+                    .unreadCount(0)
+                    .emails(emails)
+                    .build();
+
+            log.info("✓ Fetched {} drafts for {}", emails.size(), email);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(response, "Drafts fetched successfully"));
+
+        } catch (Throwable e) {
+            String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
+            log.error("CRITICAL error fetching drafts for {}: {}", userEmail, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to fetch drafts: " + e.getMessage()));
+        }
+    }
+
+
 
 
     /**
