@@ -245,14 +245,14 @@ public class MailReceiveService {
     @Transactional
     public void toggleStar(String email, String password, String folderName, String uid) {
         log.info("Toggling star for email UID {} in folder {} from local DB mapping", uid, folderName);
-        String normalizedFolder = folderName.toUpperCase();
+        String resolvedFolder = getStaticNormalizedFolderName(folderName);
         
         Optional<StarredEmail> existing;
         if ("STARRED".equalsIgnoreCase(folderName)) {
             List<StarredEmail> list = starredEmailRepository.findByUserEmailAndUid(email, uid);
             existing = list.stream().findFirst();
         } else {
-            existing = starredEmailRepository.findByUserEmailAndUidAndFolderName(email, uid, normalizedFolder);
+            existing = starredEmailRepository.findByUserEmailAndUidAndFolderName(email, uid, resolvedFolder);
         }
         
         if (existing.isPresent()) {
@@ -263,11 +263,11 @@ public class MailReceiveService {
                 StarredEmail star = StarredEmail.builder()
                     .userEmail(email)
                     .uid(uid)
-                    .folderName(normalizedFolder)
+                    .folderName(resolvedFolder)
                     .starredAt(java.time.LocalDateTime.now())
                     .build();
                 starredEmailRepository.save(star);
-                log.info("Successfully STARRED UID {} in {}", uid, normalizedFolder);
+                log.info("Successfully STARRED UID {} in {}", uid, resolvedFolder);
             }
         }
     }
@@ -397,7 +397,6 @@ public class MailReceiveService {
             }
             UIDFolder uidSource = (UIDFolder) source;
 
-            inbox = store.getFolder("INBOX");
             long numericUid = Long.parseLong(uid);
             Message message = uidSource.getMessageByUID(numericUid);
 
@@ -405,11 +404,29 @@ public class MailReceiveService {
                 throw new MailException("Email with UID " + uid + " no longer exists in " + sourceAlias);
             }
 
+            boolean isSentMessage = false;
+            Address[] fromAddresses = message.getFrom();
+            if (fromAddresses != null) {
+                for (Address address : fromAddresses) {
+                    if (address instanceof InternetAddress) {
+                        String fromEmail = ((InternetAddress) address).getAddress();
+                        if (email.equalsIgnoreCase(fromEmail)) {
+                            isSentMessage = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            String targetFolderName = isSentMessage ? resolveSentFolderName(store) : "INBOX";
+            inbox = store.getFolder(targetFolderName);
+            if (!inbox.exists()) inbox.create(Folder.HOLDS_MESSAGES);
+
             source.copyMessages(new Message[]{message}, inbox);
             message.setFlag(Flags.Flag.DELETED, true);
             source.expunge();
 
-            log.info("Successfully restored message {} from {} to Inbox", uid, sourceAlias);
+            log.info("Successfully restored message {} from {} to {}", uid, sourceAlias, targetFolderName);
 
         } catch (Exception e) {
             log.error("Failed to restore from {}: {}", sourceAlias, e.getMessage(), e);
@@ -715,6 +732,18 @@ public class MailReceiveService {
 
         log.warn("⚠ NO SENT FOLDER DETECTED for user. Using default 'Sent'.");
         return "Sent";
+    }
+
+    private String getStaticNormalizedFolderName(String folderName) {
+        if (folderName == null) return "INBOX";
+        String upper = folderName.toUpperCase();
+        if ("INBOX".equals(upper)) return "INBOX";
+        if ("SENT".equals(upper)) return "Sent";
+        if ("TRASH".equals(upper)) return "Trash";
+        if ("SPAM".equals(upper)) return "Spam";
+        if ("SNOOZED".equals(upper)) return "Snoozed";
+        if ("ARCHIVE".equals(upper)) return "Archive";
+        return folderName;
     }
 
 
