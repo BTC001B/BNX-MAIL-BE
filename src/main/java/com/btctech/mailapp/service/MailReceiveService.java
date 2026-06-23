@@ -916,6 +916,7 @@ public class MailReceiveService {
         if (upperFolder.contains("SENT")) category = "SENT";
         else if (upperFolder.contains("TRASH") || upperFolder.contains("DELETED")) category = "TRASH";
         else if (upperFolder.contains("SPAM") || upperFolder.contains("JUNK")) category = "SPAM";
+        else if (upperFolder.contains("DRAFT")) category = "DRAFTS";
         
         dto.setCategory(category);
         // Labels (V3)
@@ -1090,15 +1091,32 @@ public class MailReceiveService {
         try { if (store != null) store.close(); } catch (Exception e) {}
     }
 
-    public void downloadAttachment(String email, String password, String uid, String fileName, java.io.OutputStream os) {
+    public void downloadAttachment(String email, String password, String folderName, String uid, String fileName, java.io.OutputStream os) {
         Store store = null; Folder folder = null;
         try {
             store = connect(email, password);
-            folder = store.getFolder("INBOX");
+            String actualFolderName = folderName;
+            if ("Sent".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveSentFolderName(store);
+            } else if ("Trash".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveTrashFolderName(store);
+            } else if ("Spam".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveSpamFolderName(store);
+            } else if ("Snoozed".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveSnoozedFolderName(store);
+            } else if ("Archive".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveArchiveFolderName(store);
+            } else if ("Drafts".equalsIgnoreCase(folderName) || "Draft".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveDraftsFolderName(store);
+            } else if (folderName == null || folderName.isEmpty()) {
+                actualFolderName = "INBOX";
+            }
+
+            folder = store.getFolder(actualFolderName);
             folder.open(Folder.READ_ONLY);
 
             if (!(folder instanceof UIDFolder)) {
-                 throw new MailException("INBOX does not support persistent UIDs.");
+                 throw new MailException(actualFolderName + " does not support persistent UIDs.");
             }
             UIDFolder uidFolder = (UIDFolder) folder;
 

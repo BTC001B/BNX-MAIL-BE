@@ -954,6 +954,7 @@ public class MailReceiveController {
     public void downloadAttachment(
             @PathVariable String uid,
             @PathVariable String fileName,
+            @RequestParam(defaultValue = "INBOX") String folder,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication,
             jakarta.servlet.http.HttpServletResponse response) {
@@ -962,7 +963,7 @@ public class MailReceiveController {
         String token = authHeader.substring(7);
         String password = sessionService.getPasswordFromSession(token);
         
-        log.info("Download attachment request: {} from email: {} for user: {}", fileName, uid, email);
+        log.info("Download attachment request: {} from email: {} (folder: {}) for user: {}", fileName, uid, folder, email);
 
         if (password == null) {
             log.warn("Unauthorized download attempt (expired session) by {}", email);
@@ -979,6 +980,7 @@ public class MailReceiveController {
             mailReceiveService.downloadAttachment(
                 email, 
                 password, 
+                folder,
                 uid, 
                 fileName, 
                 response.getOutputStream()

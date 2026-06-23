@@ -36,6 +36,7 @@ public class MailDraftService {
     private final ImagePreviewService imagePreviewService;
     private final DraftCollaborationService collaborationService;
     private final ObjectMapper objectMapper;
+    private final SessionService sessionService;
 
     /**
      * Upload attachment to draft
@@ -284,9 +285,25 @@ public class MailDraftService {
         draft.setFailureReason(null);
         draftRepository.save(draft);
 
+        // Decrypt the mail account password for SMTP/IMAP send/archive copy
+        String mailPassword = null;
+        if (account.getEncryptedPassword() != null) {
+            try {
+                mailPassword = sessionService.decrypt(account.getEncryptedPassword());
+            } catch (Exception e) {
+                log.error("Failed to decrypt password for draft sending: {}", e.getMessage());
+            }
+        }
+        if (mailPassword == null) {
+            mailPassword = sessionService.getPasswordByUserId(userId);
+        }
+        if (mailPassword == null) {
+            mailPassword = account.getPassword();
+        }
+
         try {
             // 8. Send
-            mailSendService.sendMail(account.getEmail(), account.getPassword(), sendRequest);
+            mailSendService.sendMail(account.getEmail(), mailPassword, sendRequest);
 
             // 9. Reclaim Storage (Total size of all attachments combined)
             long totalReclaim = sendRequest.getAttachments().stream().mapToLong(AttachmentInfo::getSize).sum();
