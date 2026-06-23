@@ -12,6 +12,8 @@ import com.btctech.mailapp.dto.EmailDTO;
 import com.btctech.mailapp.exception.MailException;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.MimeMessage;
+import com.btctech.mailapp.dto.SendMailRequest;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.mail.internet.MimeMultipart;
 import lombok.RequiredArgsConstructor;
@@ -125,6 +127,59 @@ public class MailReceiveService {
 
     public List<EmailDTO> getDrafts(String email, String password, int limit) {
         return getEmailsFromFolder(email, password, "Drafts", limit);
+    }
+
+    public void saveDraftToIMAP(String email, String password, SendMailRequest request) {
+        log.info("Saving draft to IMAP Drafts folder for {}", email);
+        Store store = null;
+        Folder draftsFolder = null;
+
+        try {
+            store = connect(email, password);
+            String actualDraftsFolder = resolveDraftsFolderName(store);
+            draftsFolder = store.getFolder(actualDraftsFolder);
+            if (!draftsFolder.exists()) {
+                draftsFolder.create(Folder.HOLDS_MESSAGES);
+            }
+
+            draftsFolder.open(Folder.READ_WRITE);
+
+            Session session = Session.getInstance(new Properties());
+            MimeMessage message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(email));
+
+            if (request.getTo() != null && !request.getTo().isEmpty()) {
+                message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(request.getTo()));
+            }
+            if (request.getCc() != null && !request.getCc().isEmpty()) {
+                message.setRecipients(Message.RecipientType.CC, InternetAddress.parse(request.getCc()));
+            }
+            if (request.getBcc() != null && !request.getBcc().isEmpty()) {
+                message.setRecipients(Message.RecipientType.BCC, InternetAddress.parse(request.getBcc()));
+            }
+
+            message.setSubject(request.getSubject() != null ? request.getSubject() : "");
+
+            if (request.getIsHtml() != null && request.getIsHtml()) {
+                message.setContent(request.getBody(), "text/html; charset=utf-8");
+            } else {
+                message.setText(request.getBody() != null ? request.getBody() : "", "utf-8");
+            }
+
+            // Mark as Draft and Seen
+            message.setFlag(Flags.Flag.DRAFT, true);
+            message.setFlag(Flags.Flag.SEEN, true);
+            message.saveChanges();
+
+            draftsFolder.appendMessages(new Message[]{message});
+            log.info("✓ Draft message successfully saved to IMAP '{}' folder for {}", actualDraftsFolder, email);
+
+        } catch (Exception e) {
+            log.error("Failed to save draft to IMAP: {}", e.getMessage(), e);
+            throw new MailException("Failed to save draft: " + e.getMessage());
+        } finally {
+            cleanup(store, draftsFolder);
+        }
     }
 
     public List<EmailDTO> getSent(String email, String password, int limit) {
@@ -340,7 +395,22 @@ public class MailReceiveService {
             target = store.getFolder(resolvedTargetFolderName);
             if (!target.exists()) target.create(Folder.HOLDS_MESSAGES);
 
-            source = store.getFolder(sourceFolderName);
+            String resolvedSourceFolderName = sourceFolderName;
+            if ("Sent".equalsIgnoreCase(sourceFolderName)) {
+                resolvedSourceFolderName = resolveSentFolderName(store);
+            } else if ("Trash".equalsIgnoreCase(sourceFolderName)) {
+                resolvedSourceFolderName = resolveTrashFolderName(store);
+            } else if ("Spam".equalsIgnoreCase(sourceFolderName)) {
+                resolvedSourceFolderName = resolveSpamFolderName(store);
+            } else if ("Snoozed".equalsIgnoreCase(sourceFolderName)) {
+                resolvedSourceFolderName = resolveSnoozedFolderName(store);
+            } else if ("Archive".equalsIgnoreCase(sourceFolderName)) {
+                resolvedSourceFolderName = resolveArchiveFolderName(store);
+            } else if ("Drafts".equalsIgnoreCase(sourceFolderName) || "Draft".equalsIgnoreCase(sourceFolderName)) {
+                resolvedSourceFolderName = resolveDraftsFolderName(store);
+            }
+
+            source = store.getFolder(resolvedSourceFolderName);
             source.open(Folder.READ_WRITE);
 
             if (!(source instanceof UIDFolder)) {

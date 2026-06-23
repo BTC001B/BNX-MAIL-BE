@@ -3,6 +3,7 @@ package com.btctech.mailapp.controller;
 import com.btctech.mailapp.dto.ApiResponse;
 import com.btctech.mailapp.dto.EmailDTO;
 import com.btctech.mailapp.dto.InboxResponse;
+import com.btctech.mailapp.dto.SendMailRequest;
 import com.btctech.mailapp.service.MailReceiveService;
 import com.btctech.mailapp.service.SessionService;
 import lombok.RequiredArgsConstructor;
@@ -529,6 +530,40 @@ public class MailReceiveController {
             log.error("CRITICAL error fetching drafts for {}: {}", userEmail, e.getMessage(), e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("Failed to fetch drafts: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Save draft to IMAP server
+     */
+    @PostMapping("/draft")
+    public ResponseEntity<ApiResponse<Void>> saveDraft(
+            @RequestBody SendMailRequest request,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Save draft request from: {}", email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            mailReceiveService.saveDraftToIMAP(email, password, request);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(null, "Draft saved successfully"));
+
+        } catch (Throwable e) {
+            String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
+            log.error("CRITICAL error saving draft for {}: {}", userEmail, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to save draft: " + e.getMessage()));
         }
     }
 
