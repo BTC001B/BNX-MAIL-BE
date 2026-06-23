@@ -26,4 +26,7 @@ public class MailLabel {
 
     @Column(nullable = false)
     private String colorHex; // e.g. #FF5733
+
+    @Column(name = "parent_id")
+    private Long parentId;
 }

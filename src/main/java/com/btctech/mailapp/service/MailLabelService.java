@@ -26,15 +26,24 @@ public class MailLabelService {
     }
 
     @Transactional
-    public MailLabel createLabel(String userEmail, String name, String colorHex) {
+    public MailLabel createLabel(String userEmail, String name, String colorHex, Long parentId) {
         if (labelRepository.existsByUserEmailAndName(userEmail, name)) {
             throw new MailException("Label with name '" + name + "' already exists");
+        }
+
+        if (parentId != null) {
+            MailLabel parent = labelRepository.findById(parentId)
+                    .orElseThrow(() -> new MailException("Parent label not found"));
+            if (!parent.getUserEmail().equals(userEmail)) {
+                throw new MailException("Unauthorized parent label");
+            }
         }
 
         MailLabel label = MailLabel.builder()
                 .userEmail(userEmail)
                 .name(name)
                 .colorHex(colorHex)
+                .parentId(parentId)
                 .build();
 
         return labelRepository.save(label);
@@ -49,9 +58,23 @@ public class MailLabelService {
             throw new MailException("You do not have permission to delete this label");
         }
 
+        // Recursively delete children
+        deleteChildren(userEmail, labelId);
+
         // Clean up mappings first
         mappingRepository.deleteByLabelId(labelId);
         labelRepository.delete(label);
+    }
+
+    private void deleteChildren(String userEmail, Long parentId) {
+        List<MailLabel> children = labelRepository.findByParentId(parentId);
+        for (MailLabel child : children) {
+            // Recursively delete its children
+            deleteChildren(userEmail, child.getId());
+            // Delete mappings and the child label
+            mappingRepository.deleteByLabelId(child.getId());
+            labelRepository.delete(child);
+        }
     }
 
     @Transactional

@@ -8,5 +8,6 @@ import java.util.List;
 @Repository
 public interface MailLabelRepository extends JpaRepository<MailLabel, Long> {
     List<MailLabel> findByUserEmail(String userEmail);
+    List<MailLabel> findByParentId(Long parentId);
     boolean existsByUserEmailAndName(String userEmail, String name);
 }

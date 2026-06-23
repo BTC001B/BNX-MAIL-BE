@@ -30,7 +30,7 @@ public class MailLabelController {
             @RequestBody MailLabel request,
             Authentication authentication) {
         String email = authentication.getName();
-        MailLabel label = labelService.createLabel(email, request.getName(), request.getColorHex());
+        MailLabel label = labelService.createLabel(email, request.getName(), request.getColorHex(), request.getParentId());
         return ResponseEntity.ok(ApiResponse.success(label, "Label created successfully"));
     }
 
