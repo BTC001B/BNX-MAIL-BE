@@ -14,6 +14,8 @@ public interface StarredEmailRepository extends JpaRepository<com.btctech.mailap
     
     Optional<com.btctech.mailapp.entity.StarredEmail> findByUserEmailAndUidAndFolderName(String userEmail, String uid, String folderName);
     
+    List<com.btctech.mailapp.entity.StarredEmail> findByUserEmailAndUid(String userEmail, String uid);
+    
     boolean existsByUserEmailAndUidAndFolderName(String userEmail, String uid, String folderName);
     
     @Modifying

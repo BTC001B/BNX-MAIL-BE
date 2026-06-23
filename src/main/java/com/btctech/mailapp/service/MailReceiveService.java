@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 
 @Slf4j
@@ -68,6 +69,8 @@ public class MailReceiveService {
                 actualFolderName = resolveSpamFolderName(store);
             } else if ("Snoozed".equalsIgnoreCase(folderName)) {
                 actualFolderName = resolveSnoozedFolderName(store);
+            } else if ("Archive".equalsIgnoreCase(folderName)) {
+                actualFolderName = resolveArchiveFolderName(store);
             }
 
 
@@ -132,6 +135,10 @@ public class MailReceiveService {
 
     public List<EmailDTO> getSnoozed(String email, String password, int limit) {
         return getEmailsFromFolder(email, password, "Snoozed", limit);
+    }
+
+    public List<EmailDTO> getArchive(String email, String password, int limit) {
+        return getEmailsFromFolder(email, password, "Archive", limit);
     }
 
     public List<EmailDTO> getEmailsByCategory(String email, String password, String category, int limit) {
@@ -240,20 +247,28 @@ public class MailReceiveService {
         log.info("Toggling star for email UID {} in folder {} from local DB mapping", uid, folderName);
         String normalizedFolder = folderName.toUpperCase();
         
-        var existing = starredEmailRepository.findByUserEmailAndUidAndFolderName(email, uid, normalizedFolder);
+        Optional<StarredEmail> existing;
+        if ("STARRED".equalsIgnoreCase(folderName)) {
+            List<StarredEmail> list = starredEmailRepository.findByUserEmailAndUid(email, uid);
+            existing = list.stream().findFirst();
+        } else {
+            existing = starredEmailRepository.findByUserEmailAndUidAndFolderName(email, uid, normalizedFolder);
+        }
         
         if (existing.isPresent()) {
-            starredEmailRepository.deleteByUserEmailAndUidAndFolderName(email, uid, normalizedFolder);
-            log.info("Successfully UNSTARRED UID {} in {}", uid, normalizedFolder);
+            starredEmailRepository.delete(existing.get());
+            log.info("Successfully UNSTARRED UID {} in {}", uid, existing.get().getFolderName());
         } else {
-            StarredEmail star = StarredEmail.builder()
-                .userEmail(email)
-                .uid(uid)
-                .folderName(normalizedFolder)
-                .starredAt(java.time.LocalDateTime.now())
-                .build();
-            starredEmailRepository.save(star);
-            log.info("Successfully STARRED UID {} in {}", uid, normalizedFolder);
+            if (!"STARRED".equalsIgnoreCase(folderName)) {
+                StarredEmail star = StarredEmail.builder()
+                    .userEmail(email)
+                    .uid(uid)
+                    .folderName(normalizedFolder)
+                    .starredAt(java.time.LocalDateTime.now())
+                    .build();
+                starredEmailRepository.save(star);
+                log.info("Successfully STARRED UID {} in {}", uid, normalizedFolder);
+            }
         }
     }
 
@@ -265,6 +280,16 @@ public class MailReceiveService {
     public void markAsSpam(String email, String password, String sourceFolderName, String uid) {
         log.info("Marking email UID {} from {} as SPAM for {}", uid, sourceFolderName, email);
         moveMessage(email, password, sourceFolderName, uid, "Spam");
+    }
+
+    public void archiveEmail(String email, String password, String sourceFolder, String uid) {
+        log.info("Archiving email UID {} from {} to Archive for {}", uid, sourceFolder, email);
+        moveMessage(email, password, sourceFolder, uid, "Archive");
+    }
+
+    public void unarchiveEmail(String email, String password, String uid) {
+        log.info("Unarchiving email UID {} from Archive to Inbox for {}", uid, email);
+        restoreFromFolder(email, password, uid, "Archive");
     }
 
     @Transactional
@@ -299,6 +324,8 @@ public class MailReceiveService {
                 resolvedTargetFolderName = resolveSpamFolderName(store);
             } else if ("Snoozed".equalsIgnoreCase(targetFolderAlias)) {
                 resolvedTargetFolderName = resolveSnoozedFolderName(store);
+            } else if ("Archive".equalsIgnoreCase(targetFolderAlias)) {
+                resolvedTargetFolderName = resolveArchiveFolderName(store);
             } else {
                 resolvedTargetFolderName = targetFolderAlias;
             }
@@ -359,6 +386,7 @@ public class MailReceiveService {
             String solvedSource;
             if ("Trash".equalsIgnoreCase(sourceAlias)) solvedSource = resolveTrashFolderName(store);
             else if ("Spam".equalsIgnoreCase(sourceAlias)) solvedSource = resolveSpamFolderName(store);
+            else if ("Archive".equalsIgnoreCase(sourceAlias)) solvedSource = resolveArchiveFolderName(store);
             else solvedSource = sourceAlias;
 
             source = store.getFolder(solvedSource);
@@ -594,6 +622,28 @@ public class MailReceiveService {
             if (!f.exists()) f.create(Folder.HOLDS_MESSAGES);
             return "INBOX.Snoozed";
         }
+    }
+
+    private String resolveArchiveFolderName(Store store) throws MessagingException {
+        String[] candidates = {"Archive", "ARCHIVE", "INBOX.Archive", "INBOX/Archive", "Archived", "INBOX.Archived"};
+        for (String name : candidates) {
+            try { 
+                Folder f = store.getFolder(name);
+                if (f.exists()) return name; 
+            } catch (Exception e) {
+                log.debug("Folder candidate '{}' check failed: {}", name, e.getMessage());
+            }
+        }
+        try {
+            Folder[] folders = store.getDefaultFolder().list("*");
+            for (Folder f : folders) {
+                String name = f.getFullName();
+                if (name.equalsIgnoreCase("Archive") || name.toUpperCase().contains("ARCHIVE")) return name;
+            }
+        } catch (MessagingException e) {
+            log.warn("Failed to list all folders for archive resolution");
+        }
+        return "Archive";
     }
 
 

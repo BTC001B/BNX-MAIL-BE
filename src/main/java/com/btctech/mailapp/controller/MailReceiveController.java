@@ -444,6 +444,50 @@ public class MailReceiveController {
         }
     }
 
+    /**
+     * Get archived emails
+     */
+    @GetMapping("/archive")
+    public ResponseEntity<ApiResponse<InboxResponse>> getArchive(
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Get archive emails request from: {}", email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            List<EmailDTO> emails = mailReceiveService.getArchive(email, password, limit);
+            if (emails == null) emails = new java.util.ArrayList<>();
+
+            InboxResponse response = InboxResponse.builder()
+                    .email(email)
+                    .totalCount(emails.size())
+                    .unreadCount(0)
+                    .emails(emails)
+                    .build();
+
+            log.info("✓ Fetched {} archived emails for {}", emails.size(), email);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(response, "Archived emails fetched successfully"));
+
+        } catch (Throwable e) {
+            String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
+            log.error("CRITICAL error fetching archived emails for {}: {}", userEmail, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to fetch archived emails: " + e.getMessage()));
+        }
+    }
+
 
 
     /**
@@ -547,6 +591,75 @@ public class MailReceiveController {
             log.error("CRITICAL error snoozing email UID {}: {}", uid, e.getMessage(), e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("Failed to snooze email: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Move to archive
+     */
+    @PostMapping("/archive/{uid}")
+    public ResponseEntity<ApiResponse<Void>> archiveEmail(
+            @PathVariable String uid,
+            @RequestParam(defaultValue = "INBOX") String folder,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Archive email request for {} in folder {} from {}", uid, folder, email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            mailReceiveService.archiveEmail(email, password, folder, uid);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(null, "Email archived successfully"));
+
+        } catch (Throwable e) {
+            log.error("CRITICAL error archiving email UID {} from {}: {}", uid, folder, e.getMessage(), e);
+            String detail = e.getMessage() + (e.getCause() != null ? " | Cause: " + e.getCause().getMessage() : "");
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to archive email: " + detail));
+        }
+    }
+
+    /**
+     * Restore from archive (Unarchive)
+     */
+    @PostMapping("/unarchive/{uid}")
+    public ResponseEntity<ApiResponse<Void>> unarchiveEmail(
+            @PathVariable String uid,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Unarchive email request for {} from {}", uid, email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            mailReceiveService.unarchiveEmail(email, password, uid);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(null, "Email restored to Inbox successfully"));
+
+        } catch (Throwable e) {
+            log.error("CRITICAL error unarchiving email UID {}: {}", uid, e.getMessage(), e);
+            String detail = e.getMessage() + (e.getCause() != null ? " | Cause: " + e.getCause().getMessage() : "");
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to unarchive email: " + detail));
         }
     }
 

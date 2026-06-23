@@ -59,7 +59,7 @@ public class ClientSeedConfig {
             clientAppRepository.findByClientId("cliks-business").ifPresentOrElse(
                 client -> {
                     log.info("Updating cliks-business OAuth client redirect URI...");
-                    client.setRedirectUri("https://cliksbusiness.com/auth");
+                    client.setRedirectUri("https://cliksbusiness.com/");
                     clientAppRepository.save(client);
                 },
                 () -> {
@@ -68,7 +68,7 @@ public class ClientSeedConfig {
                             .clientId("cliks-business")
                             .clientSecret("secure-cliks-biz-secret-2026")
                             .appName("Cliks Business")
-                            .redirectUri("https://cliksbusiness.com/auth")
+                            .redirectUri("https://cliksbusiness.com/")
                             .build();
                     clientAppRepository.save(client);
                     log.info("Test OAuth client seeded: cliks-business");
