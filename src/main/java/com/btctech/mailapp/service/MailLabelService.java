@@ -83,12 +83,16 @@ public class MailLabelService {
         String upper = folderName.toUpperCase();
         if (upper.contains("STARRED")) {
             var list = starredEmailRepository.findByUserEmailAndUid(userEmail, emailUid);
-            if (!list.isEmpty()) return list.get(0).getFolderName();
+            if (!list.isEmpty() && !list.get(0).getFolderName().toUpperCase().contains("STARRED")) {
+                return list.get(0).getFolderName();
+            }
             return "INBOX";
         }
         if (upper.contains("ALLMAIL") || upper.contains("ALL-MAIL") || upper.contains("LABEL")) {
             var list = mappingRepository.findByUserEmailAndEmailUid(userEmail, emailUid);
-            if (!list.isEmpty()) return list.get(0).getFolderName();
+            if (!list.isEmpty() && !list.get(0).getFolderName().toUpperCase().contains("LABEL") && !list.get(0).getFolderName().toUpperCase().contains("ALL")) {
+                return list.get(0).getFolderName();
+            }
             return "INBOX";
         }
         if (upper.contains("INBOX")) return "INBOX";
@@ -111,8 +115,9 @@ public class MailLabelService {
 
         String normFolder = normalizeFolder(userEmail, emailUid, folderName);
 
-        // Check if already applied
-        if (mappingRepository.findByUserEmailAndEmailUidAndFolderNameAndLabelId(userEmail, emailUid, normFolder, labelId).isPresent()) {
+        // Check if already applied ignoring folder name to prevent duplicates
+        List<MailLabelMapping> existing = mappingRepository.findByUserEmailAndEmailUidAndLabelId(userEmail, emailUid, labelId);
+        if (!existing.isEmpty()) {
             return;
         }
 
@@ -133,10 +138,10 @@ public class MailLabelService {
     }
 
     public List<MailLabel> getLabelsForEmail(String userEmail, String emailUid, String folderName) {
-        String normFolder = normalizeFolder(userEmail, emailUid, folderName);
-        return mappingRepository.findByUserEmailAndEmailUidAndFolderName(userEmail, emailUid, normFolder)
+        return mappingRepository.findByUserEmailAndEmailUid(userEmail, emailUid)
                 .stream()
                 .map(MailLabelMapping::getLabel)
+                .distinct()
                 .collect(Collectors.toList());
     }
 }

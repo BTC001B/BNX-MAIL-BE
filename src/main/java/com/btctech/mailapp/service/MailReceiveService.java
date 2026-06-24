@@ -242,20 +242,32 @@ public class MailReceiveService {
                     else if ("Spam".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveSpamFolderName(store);
                     else if ("Archive".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveArchiveFolderName(store);
 
-                    jakarta.mail.Folder f = store.getFolder(folderToOpen);
-                    if (f.exists()) {
-                        if (!f.isOpen()) f.open(jakarta.mail.Folder.READ_ONLY);
-                        
-                        if (f instanceof jakarta.mail.UIDFolder) {
-                            jakarta.mail.UIDFolder uidFolder = (jakarta.mail.UIDFolder) f;
-                            jakarta.mail.Message msg = uidFolder.getMessageByUID(Long.parseLong(mapping.getEmailUid()));
-                            if (msg != null) {
-                                labeledEmails.add(convertToDTO(msg, uidFolder, email));
+                    String[] candidates = { folderToOpen, "INBOX", resolveSentFolderName(store), resolveArchiveFolderName(store) };
+                    for (String candidate : candidates) {
+                        if (candidate == null || candidate.toUpperCase().contains("STARRED") || candidate.toUpperCase().contains("ALL") || candidate.toUpperCase().contains("LABEL")) continue;
+                        jakarta.mail.Folder f = null;
+                        try {
+                            f = store.getFolder(candidate);
+                            if (f.exists()) {
+                                if (!f.isOpen()) f.open(jakarta.mail.Folder.READ_ONLY);
+                                if (f instanceof jakarta.mail.UIDFolder) {
+                                    jakarta.mail.UIDFolder uidFolder = (jakarta.mail.UIDFolder) f;
+                                    jakarta.mail.Message msg = uidFolder.getMessageByUID(Long.parseLong(mapping.getEmailUid()));
+                                    if (msg != null) {
+                                        labeledEmails.add(convertToDTO(msg, uidFolder, email));
+                                        try { if (f != null && f.isOpen()) f.close(false); } catch (Exception ex) {}
+                                        break;
+                                    }
+                                }
                             }
+                        } catch (Exception e) {
+                            log.debug("Failed candidate {} for label email UID {}", candidate, mapping.getEmailUid());
+                        } finally {
+                            try { if (f != null && f.isOpen()) f.close(false); } catch (Exception ex) {}
                         }
                     }
                 } catch (Exception e) {
-                    log.warn("Failed to fetch labeled email for UID {} in {}: {}", mapping.getEmailUid(), mapping.getFolderName(), e.getMessage());
+                    log.warn("Failed to fetch labeled email for UID {}: {}", mapping.getEmailUid(), e.getMessage());
                 }
             }
             return labeledEmails;
@@ -282,22 +294,40 @@ public class MailReceiveService {
             // 2. Fetch messages from IMAP using UIDs stored in DB
             for (StarredEmail mapping : starredMappings) {
                 try {
-                    Folder f = store.getFolder(mapping.getFolderName());
-                    if (f.exists()) {
-                        if (!f.isOpen()) f.open(Folder.READ_ONLY);
-                        
-                        if (f instanceof UIDFolder) {
-                            UIDFolder uidFolder = (UIDFolder) f;
-                            Message msg = uidFolder.getMessageByUID(Long.parseLong(mapping.getUid()));
-                            if (msg != null) {
-                                EmailDTO dto = convertToDTO(msg, uidFolder, email);
-                                dto.setStarred(true); 
-                                starredEmails.add(dto);
+                    String folderToOpen = mapping.getFolderName();
+                    if ("Sent".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveSentFolderName(store);
+                    else if ("Trash".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveTrashFolderName(store);
+                    else if ("Spam".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveSpamFolderName(store);
+                    else if ("Archive".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveArchiveFolderName(store);
+
+                    String[] candidates = { folderToOpen, "INBOX", resolveSentFolderName(store), resolveArchiveFolderName(store) };
+                    for (String candidate : candidates) {
+                        if (candidate == null || candidate.toUpperCase().contains("STARRED") || candidate.toUpperCase().contains("ALL") || candidate.toUpperCase().contains("LABEL")) continue;
+                        Folder f = null;
+                        try {
+                            f = store.getFolder(candidate);
+                            if (f.exists()) {
+                                if (!f.isOpen()) f.open(Folder.READ_ONLY);
+                                if (f instanceof UIDFolder) {
+                                    UIDFolder uidFolder = (UIDFolder) f;
+                                    Message msg = uidFolder.getMessageByUID(Long.parseLong(mapping.getUid()));
+                                    if (msg != null) {
+                                        EmailDTO dto = convertToDTO(msg, uidFolder, email);
+                                        dto.setStarred(true); 
+                                        starredEmails.add(dto);
+                                        try { if (f != null && f.isOpen()) f.close(false); } catch (Exception ex) {}
+                                        break;
+                                    }
+                                }
                             }
+                        } catch (Exception e) {
+                            log.debug("Failed candidate {} for starred email UID {}", candidate, mapping.getUid());
+                        } finally {
+                            try { if (f != null && f.isOpen()) f.close(false); } catch (Exception ex) {}
                         }
                     }
                 } catch (Exception e) {
-                    log.warn("Failed to fetch starred email for UID {} in {}: {}", mapping.getUid(), mapping.getFolderName(), e.getMessage());
+                    log.warn("Failed to fetch starred email for UID {}: {}", mapping.getUid(), e.getMessage());
                 }
             }
             return starredEmails;
@@ -312,30 +342,24 @@ public class MailReceiveService {
     @Transactional
     public void toggleStar(String email, String password, String folderName, String uid) {
         log.info("Toggling star for email UID {} in folder {} from local DB mapping", uid, folderName);
-        String resolvedFolder = getStaticNormalizedFolderName(folderName);
+        List<StarredEmail> list = starredEmailRepository.findByUserEmailAndUid(email, uid);
         
-        Optional<StarredEmail> existing;
-        if ("STARRED".equalsIgnoreCase(folderName)) {
-            List<StarredEmail> list = starredEmailRepository.findByUserEmailAndUid(email, uid);
-            existing = list.stream().findFirst();
+        if (!list.isEmpty()) {
+            starredEmailRepository.deleteAll(list);
+            log.info("Successfully UNSTARRED UID {}", uid);
         } else {
-            existing = starredEmailRepository.findByUserEmailAndUidAndFolderName(email, uid, resolvedFolder);
-        }
-        
-        if (existing.isPresent()) {
-            starredEmailRepository.delete(existing.get());
-            log.info("Successfully UNSTARRED UID {} in {}", uid, existing.get().getFolderName());
-        } else {
-            if (!"STARRED".equalsIgnoreCase(folderName)) {
-                StarredEmail star = StarredEmail.builder()
-                    .userEmail(email)
-                    .uid(uid)
-                    .folderName(resolvedFolder)
-                    .starredAt(java.time.LocalDateTime.now())
-                    .build();
-                starredEmailRepository.save(star);
-                log.info("Successfully STARRED UID {} in {}", uid, resolvedFolder);
+            String resolvedFolder = getStaticNormalizedFolderName(folderName);
+            if (resolvedFolder.toUpperCase().contains("STARRED") || resolvedFolder.toUpperCase().contains("ALLMAIL") || resolvedFolder.toUpperCase().contains("ALL-MAIL") || resolvedFolder.toUpperCase().contains("LABEL")) {
+                resolvedFolder = "INBOX";
             }
+            StarredEmail star = StarredEmail.builder()
+                .userEmail(email)
+                .uid(uid)
+                .folderName(resolvedFolder)
+                .starredAt(java.time.LocalDateTime.now())
+                .build();
+            starredEmailRepository.save(star);
+            log.info("Successfully STARRED UID {} in {}", uid, resolvedFolder);
         }
     }
 
@@ -431,22 +455,63 @@ public class MailReceiveService {
                 }
             }
 
-            source = store.getFolder(resolvedSourceFolderName);
-            source.open(Folder.READ_WRITE);
-
-            if (!(source instanceof UIDFolder)) {
-                throw new MailException("Source folder " + sourceFolderName + " does not support persistent UIDs.");
+            String[] candidateFolders = { resolvedSourceFolderName, "INBOX", resolveSentFolderName(store), resolveArchiveFolderName(store) };
+            Message message = null;
+            for (String candidate : candidateFolders) {
+                if (candidate == null || candidate.toUpperCase().contains("STARRED") || candidate.toUpperCase().contains("ALL") || candidate.toUpperCase().contains("LABEL")) continue;
+                try {
+                    Folder temp = store.getFolder(candidate);
+                    if (temp.exists()) {
+                        temp.open(Folder.READ_WRITE);
+                        if (temp instanceof UIDFolder) {
+                            Message m = ((UIDFolder) temp).getMessageByUID(Long.parseLong(uid));
+                            if (m != null) {
+                                source = temp;
+                                message = m;
+                                break;
+                            }
+                        }
+                        temp.close(false);
+                    }
+                } catch (Exception e) {
+                    log.debug("Could not find message in candidate folder {}: {}", candidate, e.getMessage());
+                }
             }
-            UIDFolder uidSource = (UIDFolder) source;
 
-            long numericUid = Long.parseLong(uid);
-            Message message = uidSource.getMessageByUID(numericUid);
-
-            if (message == null) {
-                throw new MailException("Email with UID " + uid + " no longer exists in " + sourceFolderName);
+            if (message == null || source == null) {
+                throw new MailException("Email with UID " + uid + " could not be found in any folder.");
             }
 
             source.copyMessages(new Message[]{message}, target);
+            try {
+                target.open(Folder.READ_WRITE);
+                if (target instanceof UIDFolder) {
+                    int count = target.getMessageCount();
+                    if (count > 0) {
+                        Message newMsg = target.getMessage(count);
+                        String newUidStr = String.valueOf(((UIDFolder) target).getUID(newMsg));
+                        log.info("Updating DB mappings from old UID {} to new UID {} in folder {}", uid, newUidStr, resolvedTargetFolderName);
+                        
+                        List<StarredEmail> stars = starredEmailRepository.findByUserEmailAndUid(email, uid);
+                        for (StarredEmail star : stars) {
+                            star.setUid(newUidStr);
+                            star.setFolderName(resolvedTargetFolderName);
+                            starredEmailRepository.save(star);
+                        }
+
+                        List<MailLabelMapping> labels = labelMappingRepository.findByUserEmailAndEmailUid(email, uid);
+                        for (MailLabelMapping label : labels) {
+                            label.setEmailUid(newUidStr);
+                            label.setFolderName(resolvedTargetFolderName);
+                            labelMappingRepository.save(label);
+                        }
+                    }
+                }
+                target.close(false);
+            } catch (Exception ex) {
+                log.warn("Failed to update UID mapping after copy: {}", ex.getMessage());
+            }
+
             message.setFlag(Flags.Flag.DELETED, true);
             source.expunge();
 
@@ -520,6 +585,35 @@ public class MailReceiveService {
             if (!inbox.exists()) inbox.create(Folder.HOLDS_MESSAGES);
 
             source.copyMessages(new Message[]{message}, inbox);
+            try {
+                inbox.open(Folder.READ_WRITE);
+                if (inbox instanceof UIDFolder) {
+                    int count = inbox.getMessageCount();
+                    if (count > 0) {
+                        Message newMsg = inbox.getMessage(count);
+                        String newUidStr = String.valueOf(((UIDFolder) inbox).getUID(newMsg));
+                        log.info("Updating DB mappings from old UID {} to new UID {} in folder {}", uid, newUidStr, targetFolderName);
+                        
+                        List<StarredEmail> stars = starredEmailRepository.findByUserEmailAndUid(email, uid);
+                        for (StarredEmail star : stars) {
+                            star.setUid(newUidStr);
+                            star.setFolderName(targetFolderName);
+                            starredEmailRepository.save(star);
+                        }
+
+                        List<MailLabelMapping> labels = labelMappingRepository.findByUserEmailAndEmailUid(email, uid);
+                        for (MailLabelMapping label : labels) {
+                            label.setEmailUid(newUidStr);
+                            label.setFolderName(targetFolderName);
+                            labelMappingRepository.save(label);
+                        }
+                    }
+                }
+                inbox.close(false);
+            } catch (Exception ex) {
+                log.warn("Failed to update UID mapping after restore: {}", ex.getMessage());
+            }
+
             message.setFlag(Flags.Flag.DELETED, true);
             source.expunge();
 
@@ -922,7 +1016,8 @@ public class MailReceiveService {
         }
         
         String normFolder = getStaticNormalizedFolderName(actualFolderName);
-        dto.setStarred(starredEmailRepository.existsByUserEmailAndUidAndFolderName(userEmail, uidStr, normFolder));
+        dto.setFolderName(normFolder);
+        dto.setStarred(!starredEmailRepository.findByUserEmailAndUid(userEmail, uidStr).isEmpty());
         dto.setSize(message.getSize());
         
         String[] content = extractContent(message);
@@ -942,9 +1037,10 @@ public class MailReceiveService {
         
         dto.setCategory(category);
         // Labels (V3)
-        dto.setLabels(labelMappingRepository.findByUserEmailAndEmailUidAndFolderName(userEmail, dto.getUid(), normFolder)
+        dto.setLabels(labelMappingRepository.findByUserEmailAndEmailUid(userEmail, dto.getUid())
                 .stream()
                 .map(MailLabelMapping::getLabel)
+                .distinct()
                 .collect(java.util.stream.Collectors.toList()));
 
         return dto;

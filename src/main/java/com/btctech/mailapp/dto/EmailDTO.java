@@ -32,6 +32,7 @@ public class EmailDTO {
     @JsonProperty("isStarred")
     private boolean isStarred;
     private String category;
+    private String folderName;
     private boolean hasAttachments;
     private List<String> attachments;
     private int size;
