@@ -236,7 +236,13 @@ public class MailReceiveService {
             
             for (MailLabelMapping mapping : mappings) {
                 try {
-                    jakarta.mail.Folder f = store.getFolder(mapping.getFolderName());
+                    String folderToOpen = mapping.getFolderName();
+                    if ("Sent".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveSentFolderName(store);
+                    else if ("Trash".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveTrashFolderName(store);
+                    else if ("Spam".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveSpamFolderName(store);
+                    else if ("Archive".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveArchiveFolderName(store);
+
+                    jakarta.mail.Folder f = store.getFolder(folderToOpen);
                     if (f.exists()) {
                         if (!f.isOpen()) f.open(jakarta.mail.Folder.READ_ONLY);
                         
@@ -396,18 +402,33 @@ public class MailReceiveService {
             if (!target.exists()) target.create(Folder.HOLDS_MESSAGES);
 
             String resolvedSourceFolderName = sourceFolderName;
-            if ("Sent".equalsIgnoreCase(sourceFolderName)) {
-                resolvedSourceFolderName = resolveSentFolderName(store);
-            } else if ("Trash".equalsIgnoreCase(sourceFolderName)) {
-                resolvedSourceFolderName = resolveTrashFolderName(store);
-            } else if ("Spam".equalsIgnoreCase(sourceFolderName)) {
-                resolvedSourceFolderName = resolveSpamFolderName(store);
-            } else if ("Snoozed".equalsIgnoreCase(sourceFolderName)) {
-                resolvedSourceFolderName = resolveSnoozedFolderName(store);
-            } else if ("Archive".equalsIgnoreCase(sourceFolderName)) {
-                resolvedSourceFolderName = resolveArchiveFolderName(store);
-            } else if ("Drafts".equalsIgnoreCase(sourceFolderName) || "Draft".equalsIgnoreCase(sourceFolderName)) {
-                resolvedSourceFolderName = resolveDraftsFolderName(store);
+            if (sourceFolderName != null) {
+                String upper = sourceFolderName.toUpperCase();
+                if (upper.contains("STARRED")) {
+                    var list = starredEmailRepository.findByUserEmailAndUid(email, uid);
+                    if (!list.isEmpty()) resolvedSourceFolderName = list.get(0).getFolderName();
+                    else resolvedSourceFolderName = "INBOX";
+                } else if (upper.contains("ALLMAIL") || upper.contains("ALL-MAIL")) {
+                    resolvedSourceFolderName = "INBOX";
+                } else if (upper.contains("LABEL")) {
+                    var list = labelMappingRepository.findByUserEmailAndEmailUid(email, uid);
+                    if (!list.isEmpty()) resolvedSourceFolderName = list.get(0).getFolderName();
+                    else resolvedSourceFolderName = "INBOX";
+                }
+
+                if ("Sent".equalsIgnoreCase(resolvedSourceFolderName)) {
+                    resolvedSourceFolderName = resolveSentFolderName(store);
+                } else if ("Trash".equalsIgnoreCase(resolvedSourceFolderName)) {
+                    resolvedSourceFolderName = resolveTrashFolderName(store);
+                } else if ("Spam".equalsIgnoreCase(resolvedSourceFolderName)) {
+                    resolvedSourceFolderName = resolveSpamFolderName(store);
+                } else if ("Snoozed".equalsIgnoreCase(resolvedSourceFolderName)) {
+                    resolvedSourceFolderName = resolveSnoozedFolderName(store);
+                } else if ("Archive".equalsIgnoreCase(resolvedSourceFolderName)) {
+                    resolvedSourceFolderName = resolveArchiveFolderName(store);
+                } else if ("Drafts".equalsIgnoreCase(resolvedSourceFolderName) || "Draft".equalsIgnoreCase(resolvedSourceFolderName)) {
+                    resolvedSourceFolderName = resolveDraftsFolderName(store);
+                }
             }
 
             source = store.getFolder(resolvedSourceFolderName);
@@ -837,12 +858,12 @@ public class MailReceiveService {
     private String getStaticNormalizedFolderName(String folderName) {
         if (folderName == null) return "INBOX";
         String upper = folderName.toUpperCase();
-        if ("INBOX".equals(upper)) return "INBOX";
-        if ("SENT".equals(upper)) return "Sent";
-        if ("TRASH".equals(upper)) return "Trash";
-        if ("SPAM".equals(upper)) return "Spam";
-        if ("SNOOZED".equals(upper)) return "Snoozed";
-        if ("ARCHIVE".equals(upper)) return "Archive";
+        if (upper.contains("INBOX")) return "INBOX";
+        if (upper.contains("SENT")) return "Sent";
+        if (upper.contains("TRASH") || upper.contains("DELETED")) return "Trash";
+        if (upper.contains("SPAM") || upper.contains("JUNK")) return "Spam";
+        if (upper.contains("SNOOZED")) return "Snoozed";
+        if (upper.contains("ARCHIVE")) return "Archive";
         return folderName;
     }
 
@@ -900,7 +921,8 @@ public class MailReceiveService {
             log.debug("Could not determine folder for message: {}", e.getMessage());
         }
         
-        dto.setStarred(starredEmailRepository.existsByUserEmailAndUidAndFolderName(userEmail, uidStr, actualFolderName));
+        String normFolder = getStaticNormalizedFolderName(actualFolderName);
+        dto.setStarred(starredEmailRepository.existsByUserEmailAndUidAndFolderName(userEmail, uidStr, normFolder));
         dto.setSize(message.getSize());
         
         String[] content = extractContent(message);
@@ -920,7 +942,7 @@ public class MailReceiveService {
         
         dto.setCategory(category);
         // Labels (V3)
-        dto.setLabels(labelMappingRepository.findByUserEmailAndEmailUidAndFolderName(userEmail, dto.getUid(), actualFolderName)
+        dto.setLabels(labelMappingRepository.findByUserEmailAndEmailUidAndFolderName(userEmail, dto.getUid(), normFolder)
                 .stream()
                 .map(MailLabelMapping::getLabel)
                 .collect(java.util.stream.Collectors.toList()));

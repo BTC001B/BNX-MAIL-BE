@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface MailLabelMappingRepository extends JpaRepository<MailLabelMapping, Long> {
     List<MailLabelMapping> findByUserEmailAndEmailUidAndFolderName(String userEmail, String emailUid, String folderName);
     Optional<MailLabelMapping> findByUserEmailAndEmailUidAndFolderNameAndLabelId(String userEmail, String emailUid, String folderName, Long labelId);
+    List<MailLabelMapping> findByUserEmailAndEmailUid(String userEmail, String emailUid);
+    List<MailLabelMapping> findByUserEmailAndEmailUidAndLabelId(String userEmail, String emailUid, Long labelId);
     List<MailLabelMapping> findByLabelId(Long labelId);
     List<MailLabelMapping> findByUserEmailAndLabelId(String userEmail, Long labelId);
     void deleteByLabelId(Long labelId);

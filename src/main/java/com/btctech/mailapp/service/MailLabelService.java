@@ -20,6 +20,7 @@ public class MailLabelService {
 
     private final MailLabelRepository labelRepository;
     private final MailLabelMappingRepository mappingRepository;
+    private final com.btctech.mailapp.repository.StarredEmailRepository starredEmailRepository;
 
     public List<MailLabel> getLabels(String userEmail) {
         return labelRepository.findByUserEmail(userEmail);
@@ -77,6 +78,28 @@ public class MailLabelService {
         }
     }
 
+    private String normalizeFolder(String userEmail, String emailUid, String folderName) {
+        if (folderName == null) return "INBOX";
+        String upper = folderName.toUpperCase();
+        if (upper.contains("STARRED")) {
+            var list = starredEmailRepository.findByUserEmailAndUid(userEmail, emailUid);
+            if (!list.isEmpty()) return list.get(0).getFolderName();
+            return "INBOX";
+        }
+        if (upper.contains("ALLMAIL") || upper.contains("ALL-MAIL") || upper.contains("LABEL")) {
+            var list = mappingRepository.findByUserEmailAndEmailUid(userEmail, emailUid);
+            if (!list.isEmpty()) return list.get(0).getFolderName();
+            return "INBOX";
+        }
+        if (upper.contains("INBOX")) return "INBOX";
+        if (upper.contains("SENT")) return "Sent";
+        if (upper.contains("TRASH") || upper.contains("DELETED")) return "Trash";
+        if (upper.contains("SPAM") || upper.contains("JUNK")) return "Spam";
+        if (upper.contains("SNOOZED")) return "Snoozed";
+        if (upper.contains("ARCHIVE")) return "Archive";
+        return folderName;
+    }
+
     @Transactional
     public void applyLabelToEmail(String userEmail, String emailUid, String folderName, Long labelId) {
         MailLabel label = labelRepository.findById(labelId)
@@ -86,15 +109,17 @@ public class MailLabelService {
             throw new MailException("Unauthorized label application");
         }
 
+        String normFolder = normalizeFolder(userEmail, emailUid, folderName);
+
         // Check if already applied
-        if (mappingRepository.findByUserEmailAndEmailUidAndFolderNameAndLabelId(userEmail, emailUid, folderName, labelId).isPresent()) {
+        if (mappingRepository.findByUserEmailAndEmailUidAndFolderNameAndLabelId(userEmail, emailUid, normFolder, labelId).isPresent()) {
             return;
         }
 
         MailLabelMapping mapping = MailLabelMapping.builder()
                 .userEmail(userEmail)
                 .emailUid(emailUid)
-                .folderName(folderName)
+                .folderName(normFolder)
                 .label(label)
                 .build();
 
@@ -103,12 +128,13 @@ public class MailLabelService {
 
     @Transactional
     public void removeLabelFromEmail(String userEmail, String emailUid, String folderName, Long labelId) {
-        mappingRepository.findByUserEmailAndEmailUidAndFolderNameAndLabelId(userEmail, emailUid, folderName, labelId)
-                .ifPresent(mappingRepository::delete);
+        List<MailLabelMapping> mappings = mappingRepository.findByUserEmailAndEmailUidAndLabelId(userEmail, emailUid, labelId);
+        mappingRepository.deleteAll(mappings);
     }
 
     public List<MailLabel> getLabelsForEmail(String userEmail, String emailUid, String folderName) {
-        return mappingRepository.findByUserEmailAndEmailUidAndFolderName(userEmail, emailUid, folderName)
+        String normFolder = normalizeFolder(userEmail, emailUid, folderName);
+        return mappingRepository.findByUserEmailAndEmailUidAndFolderName(userEmail, emailUid, normFolder)
                 .stream()
                 .map(MailLabelMapping::getLabel)
                 .collect(Collectors.toList());
