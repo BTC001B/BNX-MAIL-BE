@@ -30,6 +30,8 @@ public class MailSendController {
     private final SessionService sessionService;
     private final MailboxService mailboxService;
     private final UserService userService;
+    private final com.btctech.mailapp.repository.ScheduledEmailRepository scheduledEmailRepository;
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     /**
      * Send email - NO PASSWORD NEEDED in request!
@@ -203,6 +205,119 @@ public class MailSendController {
         } catch (Exception e) {
             log.error("Bulk send failed: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.error("Failed: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/schedule")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> scheduleMail(
+            @Valid @RequestBody SendMailRequest request,
+            @RequestParam("sendAt") String sendAt,
+            Authentication authentication) {
+        try {
+            String fromEmail = authentication.getName();
+            log.info("Schedule mail request from {} to {} at {}", fromEmail, request.getTo(), sendAt);
+
+            // Parse ISO date string to LocalDateTime
+            java.time.ZonedDateTime zdt = java.time.ZonedDateTime.parse(sendAt);
+            java.time.LocalDateTime scheduledTime = zdt.toLocalDateTime();
+
+            if (scheduledTime.isBefore(java.time.LocalDateTime.now())) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Scheduled time must be in the future"));
+            }
+
+            String attachmentsJson = null;
+            if (request.getAttachments() != null && !request.getAttachments().isEmpty()) {
+                attachmentsJson = objectMapper.writeValueAsString(request.getAttachments());
+            }
+
+            com.btctech.mailapp.entity.ScheduledEmail scheduledEmail = com.btctech.mailapp.entity.ScheduledEmail.builder()
+                    .userEmail(fromEmail)
+                    .toRecipient(request.getTo())
+                    .cc(request.getCc())
+                    .bcc(request.getBcc())
+                    .subject(request.getSubject())
+                    .body(request.getBody())
+                    .fromName(request.getFromName())
+                    .isHtml(request.getIsHtml())
+                    .attachmentsJson(attachmentsJson)
+                    .scheduledAt(scheduledTime)
+                    .processed(false)
+                    .createdAt(java.time.LocalDateTime.now())
+                    .build();
+
+            scheduledEmailRepository.save(scheduledEmail);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", scheduledEmail.getId());
+            data.put("scheduledAt", sendAt);
+
+            return ResponseEntity.ok(ApiResponse.success(data, "Email scheduled successfully"));
+        } catch (Exception e) {
+            log.error("Error scheduling email: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to schedule email: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/scheduled")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getScheduledEmails(Authentication authentication) {
+        try {
+            String fromEmail = authentication.getName();
+            java.util.List<com.btctech.mailapp.entity.ScheduledEmail> list = scheduledEmailRepository.findByUserEmailAndProcessedFalse(fromEmail);
+
+            // Map to frontend expected email format
+            java.util.List<Map<String, Object>> emails = new java.util.ArrayList<>();
+            for (com.btctech.mailapp.entity.ScheduledEmail s : list) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("uid", s.getId().toString()); // EmailList expects uid as string or number
+                map.put("id", s.getId());
+                map.put("from", s.getUserEmail());
+                map.put("to", s.getToRecipient());
+                map.put("cc", s.getCc());
+                map.put("bcc", s.getBcc());
+                map.put("subject", s.getSubject());
+                map.put("body", s.getBody());
+                map.put("isHtml", s.getIsHtml());
+                map.put("isRead", true);
+                map.put("starred", false);
+                map.put("folderName", "scheduled");
+                // Pass scheduled time as receivedDate so it displays beautifully in EmailList
+                map.put("receivedDate", java.time.ZonedDateTime.of(s.getScheduledAt(), java.time.ZoneId.systemDefault()).toInstant().toEpochMilli());
+                map.put("scheduledAt", s.getScheduledAt().toString());
+                emails.add(map);
+            }
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("emails", emails);
+            data.put("total", emails.size());
+
+            return ResponseEntity.ok(ApiResponse.success(data, "Scheduled emails retrieved successfully"));
+        } catch (Exception e) {
+            log.error("Error retrieving scheduled emails: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to retrieve scheduled emails: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/scheduled/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cancelScheduledEmail(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            String fromEmail = authentication.getName();
+            com.btctech.mailapp.entity.ScheduledEmail scheduledEmail = scheduledEmailRepository.findByIdAndUserEmail(id, fromEmail).orElse(null);
+
+            if (scheduledEmail == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Scheduled email not found"));
+            }
+
+            scheduledEmailRepository.delete(scheduledEmail);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", id);
+
+            return ResponseEntity.ok(ApiResponse.success(data, "Scheduled email cancelled successfully"));
+        } catch (Exception e) {
+            log.error("Error cancelling scheduled email: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to cancel scheduled email: " + e.getMessage()));
         }
     }
 }

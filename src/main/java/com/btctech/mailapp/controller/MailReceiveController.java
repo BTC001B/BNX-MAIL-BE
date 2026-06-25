@@ -661,7 +661,21 @@ public class MailReceiveController {
                         .body(ApiResponse.error("Session expired. Please login again."));
             }
 
-            java.time.LocalDateTime wakeTime = java.time.LocalDateTime.parse(wakeUpAt);
+            java.time.LocalDateTime wakeTime;
+            try {
+                if (wakeUpAt.endsWith("Z")) {
+                    wakeTime = java.time.Instant.parse(wakeUpAt).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
+                } else if (wakeUpAt.contains("+") || (wakeUpAt.contains("-") && wakeUpAt.lastIndexOf('-') > wakeUpAt.indexOf('T'))) {
+                    wakeTime = java.time.ZonedDateTime.parse(wakeUpAt).toLocalDateTime();
+                } else {
+                    wakeTime = java.time.LocalDateTime.parse(wakeUpAt);
+                }
+            } catch (Exception parseEx) {
+                log.warn("Failed to parse wakeUpAt with standard format, attempting fallback for: {}", wakeUpAt, parseEx);
+                String clean = wakeUpAt.replace("Z", "");
+                wakeTime = java.time.LocalDateTime.parse(clean);
+            }
+
             mailReceiveService.snoozeEmail(email, password, folder, uid, wakeTime);
 
             return ResponseEntity.ok(

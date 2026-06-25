@@ -387,11 +387,11 @@ public class MailReceiveService {
     public void snoozeEmail(String email, String password, String sourceFolder, String uid, java.time.LocalDateTime wakeUpAt) {
         log.info("Snoozing email UID {} from {} until {}", uid, sourceFolder, wakeUpAt);
         
-        moveMessage(email, password, sourceFolder, uid, "Snoozed");
+        String newUid = moveMessage(email, password, sourceFolder, uid, "Snoozed");
         
         SnoozedEmail snooze = SnoozedEmail.builder()
             .userEmail(email)
-            .uid(uid)
+            .uid(newUid)
             .originalFolderName(sourceFolder)
             .wakeUpAt(wakeUpAt)
             .build();
@@ -400,10 +400,11 @@ public class MailReceiveService {
     }
 
 
-    public void moveMessage(String email, String password, String sourceFolderName, String uid, String targetFolderAlias) {
+    public String moveMessage(String email, String password, String sourceFolderName, String uid, String targetFolderAlias) {
         Store store = null;
         Folder source = null;
         Folder target = null;
+        String resultingUid = uid;
 
         try {
             store = connect(email, password);
@@ -490,6 +491,7 @@ public class MailReceiveService {
                     if (count > 0) {
                         Message newMsg = target.getMessage(count);
                         String newUidStr = String.valueOf(((UIDFolder) target).getUID(newMsg));
+                        resultingUid = newUidStr;
                         log.info("Updating DB mappings from old UID {} to new UID {} in folder {}", uid, newUidStr, resolvedTargetFolderName);
                         
                         List<StarredEmail> stars = starredEmailRepository.findByUserEmailAndUid(email, uid);
@@ -516,6 +518,7 @@ public class MailReceiveService {
             source.expunge();
 
             log.info("Successfully moved message {} to {}", uid, resolvedTargetFolderName);
+            return resultingUid;
 
         } catch (Exception e) {
             log.error("Failed to move message to {}: {}", targetFolderAlias, e.getMessage(), e);
