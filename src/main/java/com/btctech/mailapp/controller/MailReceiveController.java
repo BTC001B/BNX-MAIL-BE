@@ -1008,4 +1008,48 @@ public class MailReceiveController {
             }
         }
     }
+
+    @PostMapping("/unsubscribe")
+    public ResponseEntity<ApiResponse<Void>> unsubscribe(
+            @RequestParam String senderEmail,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            log.info("Unsubscribe request from: {} for sender: {}", userEmail, senderEmail);
+            mailReceiveService.unsubscribeSender(userEmail, senderEmail);
+            return ResponseEntity.ok(ApiResponse.success(null, "Successfully unsubscribed from " + senderEmail));
+        } catch (Exception e) {
+            log.error("Error unsubscribing sender: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to unsubscribe: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/subscribe")
+    public ResponseEntity<ApiResponse<Void>> subscribe(
+            @RequestParam String senderEmail,
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            log.info("Subscribe request from: {} for sender: {}", userEmail, senderEmail);
+            mailReceiveService.subscribeSender(userEmail, senderEmail);
+            return ResponseEntity.ok(ApiResponse.success(null, "Successfully subscribed to " + senderEmail));
+        } catch (Exception e) {
+            log.error("Error subscribing sender: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to subscribe: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/subscriptions")
+    public ResponseEntity<ApiResponse<List<String>>> getSubscriptions(
+            Authentication authentication) {
+        try {
+            String userEmail = authentication.getName();
+            log.info("Get subscriptions request from: {}", userEmail);
+            List<String> blockedSenders = mailReceiveService.getBlockedSenders(userEmail);
+            return ResponseEntity.ok(ApiResponse.success(blockedSenders, "Subscriptions fetched successfully"));
+        } catch (Exception e) {
+            log.error("Error fetching subscriptions: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(ApiResponse.error("Failed to fetch subscriptions: " + e.getMessage()));
+        }
+    }
 }

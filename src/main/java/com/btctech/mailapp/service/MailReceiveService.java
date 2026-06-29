@@ -8,6 +8,10 @@ import com.btctech.mailapp.repository.MailLabelMappingRepository;
 import com.btctech.mailapp.entity.MailLabelMapping;
 
 
+import com.btctech.mailapp.entity.BlockedSender;
+import com.btctech.mailapp.repository.BlockedSenderRepository;
+
+
 import com.btctech.mailapp.dto.EmailDTO;
 import com.btctech.mailapp.exception.MailException;
 import jakarta.mail.*;
@@ -47,6 +51,7 @@ public class MailReceiveService {
     private final StarredEmailRepository starredEmailRepository;
     private final SnoozedEmailRepository snoozedEmailRepository;
     private final MailLabelMappingRepository labelMappingRepository;
+    private final BlockedSenderRepository blockedSenderRepository;
 
 
 
@@ -102,10 +107,28 @@ public class MailReceiveService {
             int start = Math.max(1, messageCount - limit + 1);
             Message[] messages = folder.getMessages(start, messageCount);
 
+            List<String> blockedEmails = new ArrayList<>();
+            if ("INBOX".equalsIgnoreCase(folderName)) {
+                blockedEmails = blockedSenderRepository.findByUserEmail(email).stream()
+                        .map(BlockedSender::getBlockedEmail)
+                        .map(String::toLowerCase)
+                        .toList();
+            }
+
             List<EmailDTO> emails = new ArrayList<>();
             for (int i = messages.length - 1; i >= 0; i--) {
                 try {
-                    emails.add(convertToDTO(messages[i], uidFolder, email));
+                    Message msg = messages[i];
+                    if ("INBOX".equalsIgnoreCase(folderName) && !blockedEmails.isEmpty()) {
+                        Address[] from = msg.getFrom();
+                        if (from != null && from.length > 0) {
+                            String cleanFrom = extractEmailAddress(from[0].toString());
+                            if (cleanFrom != null && blockedEmails.contains(cleanFrom.toLowerCase())) {
+                                continue;
+                            }
+                        }
+                    }
+                    emails.add(convertToDTO(msg, uidFolder, email));
                 } catch (Exception e) {
                     log.warn("Failed to parse message in {}: {}", folderName, e.getMessage());
                 }
@@ -716,7 +739,26 @@ public class MailReceiveService {
 
             inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
-            return inbox.getUnreadMessageCount();
+
+            List<String> blockedEmails = blockedSenderRepository.findByUserEmail(email).stream()
+                    .map(BlockedSender::getBlockedEmail)
+                    .map(String::toLowerCase)
+                    .toList();
+
+            if (blockedEmails.isEmpty()) {
+                return inbox.getUnreadMessageCount();
+            }
+
+            jakarta.mail.search.SearchTerm searchFlag = new jakarta.mail.search.FlagTerm(new Flags(Flags.Flag.SEEN), false);
+            jakarta.mail.search.SearchTerm finalTerm = searchFlag;
+
+            for (String blocked : blockedEmails) {
+                jakarta.mail.search.SearchTerm notBlocked = new jakarta.mail.search.NotTerm(new jakarta.mail.search.FromStringTerm(blocked));
+                finalTerm = new jakarta.mail.search.AndTerm(finalTerm, notBlocked);
+            }
+
+            Message[] matching = inbox.search(finalTerm);
+            return matching.length;
         } catch (Exception e) {
             log.error("Failed to get unread count: {}", e.getMessage());
             return 0;
@@ -1316,5 +1358,41 @@ public class MailReceiveService {
             }
             if (bp.isMimeType("multipart/*")) findAndWriteAttachment((Multipart) bp.getContent(), name, os);
         }
+    }
+
+    @Transactional
+    public void unsubscribeSender(String userEmail, String senderEmail) {
+        log.info("Unsubscribing/blocking sender {} for user {}", senderEmail, userEmail);
+        String cleanEmail = extractEmailAddress(senderEmail);
+        if (cleanEmail == null || cleanEmail.isEmpty()) {
+            throw new IllegalArgumentException("Invalid sender email address");
+        }
+        cleanEmail = cleanEmail.toLowerCase();
+        if (!blockedSenderRepository.existsByUserEmailAndBlockedEmail(userEmail, cleanEmail)) {
+            BlockedSender blocked = BlockedSender.builder()
+                    .userEmail(userEmail)
+                    .blockedEmail(cleanEmail)
+                    .build();
+            blockedSenderRepository.save(blocked);
+        }
+    }
+
+    @Transactional
+    public void subscribeSender(String userEmail, String senderEmail) {
+        log.info("Subscribing/unblocking sender {} for user {}", senderEmail, userEmail);
+        String cleanEmail = extractEmailAddress(senderEmail);
+        if (cleanEmail == null || cleanEmail.isEmpty()) {
+            throw new IllegalArgumentException("Invalid sender email address");
+        }
+        cleanEmail = cleanEmail.toLowerCase();
+        blockedSenderRepository.deleteByUserEmailAndBlockedEmail(userEmail, cleanEmail);
+    }
+
+    public List<String> getBlockedSenders(String userEmail) {
+        log.info("Fetching blocked senders for user {}", userEmail);
+        return blockedSenderRepository.findByUserEmail(userEmail).stream()
+                .map(BlockedSender::getBlockedEmail)
+                .map(String::toLowerCase)
+                .toList();
     }
 }
