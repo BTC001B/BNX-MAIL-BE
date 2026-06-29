@@ -79,4 +79,25 @@ public class ChatService {
         message.setContent(content);
         return chatMessageRepository.save(message);
     }
+
+    @Transactional
+    public Chat addMembersToGroup(Long chatId, List<String> emails) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new RuntimeException("Chat not found"));
+        if (chat.getType() != ChatType.GROUP) {
+            throw new RuntimeException("Cannot add members to a non-group chat");
+        }
+        Set<User> members = chat.getMembers();
+        for (String email : emails) {
+            userRepository.findByEmail(email).ifPresent(members::add);
+        }
+        chat.setMembers(members);
+        return chatRepository.save(chat);
+    }
+
+    public List<User> getChatMembers(Long chatId) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new RuntimeException("Chat not found"));
+        return List.copyOf(chat.getMembers());
+    }
 }

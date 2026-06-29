@@ -98,4 +98,21 @@ public class ChatController {
         response.setTimestamp(message.getTimestamp().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         return response;
     }
+
+    @PostMapping("/{chatId}/members")
+    public ResponseEntity<ChatDTO> addMembers(
+            @PathVariable Long chatId,
+            @RequestBody ChatDTO.AddMembers request) {
+        Chat updated = chatService.addMembersToGroup(chatId, request.getEmails());
+        return ResponseEntity.ok(convertToDTO(updated));
+    }
+
+    @GetMapping("/{chatId}/members")
+    public ResponseEntity<List<String>> getMembers(@PathVariable Long chatId) {
+        List<com.btctech.mailapp.entity.User> members = chatService.getChatMembers(chatId);
+        List<String> emails = members.stream()
+                .map(u -> u.getEmail() != null ? u.getEmail() : u.getUsername())
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(emails);
+    }
 }

@@ -11,10 +11,8 @@ public class SendMailRequest {
     @Email(message = "Invalid recipient email format")
     private String to;
 
-    @Email(message = "Invalid CC email format")
     private String cc;
 
-    @Email(message = "Invalid BCC email format")
     private String bcc;
 
     @NotBlank(message = "Subject is required")

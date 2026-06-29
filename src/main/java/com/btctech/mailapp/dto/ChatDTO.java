@@ -41,4 +41,9 @@ public class ChatDTO {
         private String content;
         private String timestamp;
     }
+
+    @Data
+    public static class AddMembers {
+        private List<String> emails;
+    }
 }
