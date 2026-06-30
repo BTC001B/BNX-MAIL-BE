@@ -7,6 +7,8 @@ import com.btctech.mailapp.entity.User;
 import com.btctech.mailapp.repository.ChatMessageRepository;
 import com.btctech.mailapp.repository.ChatRepository;
 import com.btctech.mailapp.repository.UserRepository;
+import com.btctech.mailapp.entity.GroupBroadcast;
+import com.btctech.mailapp.repository.GroupBroadcastRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ public class ChatService {
     private final ChatRepository chatRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
+    private final GroupBroadcastRepository groupBroadcastRepository;
 
     @Transactional
     public Chat createDirectChat(String email1, String email2) {
@@ -99,5 +102,26 @@ public class ChatService {
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new RuntimeException("Chat not found"));
         return List.copyOf(chat.getMembers());
+    }
+
+    @Transactional
+    public GroupBroadcast saveBroadcast(Long chatId, String senderEmail, String subject, String body) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new RuntimeException("Chat not found"));
+        if (chat.getType() != ChatType.GROUP) {
+            throw new RuntimeException("Cannot send broadcast to a non-group chat");
+        }
+        GroupBroadcast broadcast = GroupBroadcast.builder()
+                .chat(chat)
+                .senderEmail(senderEmail)
+                .subject(subject)
+                .body(body)
+                .sentDate(java.time.LocalDateTime.now())
+                .build();
+        return groupBroadcastRepository.save(broadcast);
+    }
+
+    public List<GroupBroadcast> getBroadcasts(Long chatId) {
+        return groupBroadcastRepository.findByChatIdOrderBySentDateDesc(chatId);
     }
 }

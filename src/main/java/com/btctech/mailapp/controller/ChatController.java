@@ -115,4 +115,48 @@ public class ChatController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(emails);
     }
+
+    @PostMapping("/{chatId}/broadcast")
+    public ResponseEntity<BroadcastResponse> sendBroadcast(
+            @PathVariable Long chatId,
+            @RequestBody BroadcastRequest request,
+            org.springframework.security.core.Authentication authentication) {
+        String senderEmail = authentication.getName();
+        com.btctech.mailapp.entity.GroupBroadcast saved = chatService.saveBroadcast(chatId, senderEmail, request.getSubject(), request.getBody());
+        return ResponseEntity.ok(convertToBroadcastResponse(saved));
+    }
+
+    @GetMapping("/{chatId}/broadcasts")
+    public ResponseEntity<List<BroadcastResponse>> getBroadcasts(@PathVariable Long chatId) {
+        List<com.btctech.mailapp.entity.GroupBroadcast> list = chatService.getBroadcasts(chatId);
+        List<BroadcastResponse> response = list.stream()
+                .map(this::convertToBroadcastResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    @lombok.Data
+    public static class BroadcastRequest {
+        private String subject;
+        private String body;
+    }
+
+    @lombok.Data
+    public static class BroadcastResponse {
+        private Long id;
+        private String subject;
+        private String body;
+        private String from;
+        private String sentDate;
+    }
+
+    private BroadcastResponse convertToBroadcastResponse(com.btctech.mailapp.entity.GroupBroadcast broadcast) {
+        BroadcastResponse response = new BroadcastResponse();
+        response.setId(broadcast.getId());
+        response.setSubject(broadcast.getSubject());
+        response.setBody(broadcast.getBody());
+        response.setFrom(broadcast.getSenderEmail());
+        response.setSentDate(broadcast.getSentDate().toString());
+        return response;
+    }
 }

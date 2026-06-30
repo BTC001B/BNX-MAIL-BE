@@ -119,6 +119,10 @@ public class MailReceiveService {
             for (int i = messages.length - 1; i >= 0; i--) {
                 try {
                     Message msg = messages[i];
+                    String subject = msg.getSubject();
+                    if (subject != null && subject.toLowerCase().contains("[colab#")) {
+                        continue;
+                    }
                     if ("INBOX".equalsIgnoreCase(folderName) && !blockedEmails.isEmpty()) {
                         Address[] from = msg.getFrom();
                         if (from != null && from.length > 0) {
@@ -745,20 +749,31 @@ public class MailReceiveService {
                     .map(String::toLowerCase)
                     .toList();
 
-            if (blockedEmails.isEmpty()) {
-                return inbox.getUnreadMessageCount();
-            }
-
             jakarta.mail.search.SearchTerm searchFlag = new jakarta.mail.search.FlagTerm(new Flags(Flags.Flag.SEEN), false);
-            jakarta.mail.search.SearchTerm finalTerm = searchFlag;
+            Message[] messages = inbox.search(searchFlag);
 
-            for (String blocked : blockedEmails) {
-                jakarta.mail.search.SearchTerm notBlocked = new jakarta.mail.search.NotTerm(new jakarta.mail.search.FromStringTerm(blocked));
-                finalTerm = new jakarta.mail.search.AndTerm(finalTerm, notBlocked);
+            int unreadCount = 0;
+            for (Message msg : messages) {
+                try {
+                    String subject = msg.getSubject();
+                    if (subject != null && subject.toLowerCase().contains("[colab#")) {
+                        continue;
+                    }
+                    if (!blockedEmails.isEmpty()) {
+                        Address[] from = msg.getFrom();
+                        if (from != null && from.length > 0) {
+                            String cleanFrom = extractEmailAddress(from[0].toString());
+                            if (cleanFrom != null && blockedEmails.contains(cleanFrom.toLowerCase())) {
+                                continue;
+                            }
+                        }
+                    }
+                    unreadCount++;
+                } catch (Exception e) {
+                    log.warn("Failed to check unread message status: {}", e.getMessage());
+                }
             }
-
-            Message[] matching = inbox.search(finalTerm);
-            return matching.length;
+            return unreadCount;
         } catch (Exception e) {
             log.error("Failed to get unread count: {}", e.getMessage());
             return 0;
