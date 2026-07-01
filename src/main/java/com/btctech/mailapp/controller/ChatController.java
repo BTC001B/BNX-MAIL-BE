@@ -122,7 +122,7 @@ public class ChatController {
             @RequestBody BroadcastRequest request,
             org.springframework.security.core.Authentication authentication) {
         String senderEmail = authentication.getName();
-        com.btctech.mailapp.entity.GroupBroadcast saved = chatService.saveBroadcast(chatId, senderEmail, request.getSubject(), request.getBody());
+        com.btctech.mailapp.entity.GroupBroadcast saved = chatService.saveBroadcast(chatId, senderEmail, request.getSubject(), request.getBody(), request.getAttachmentsJson());
         return ResponseEntity.ok(convertToBroadcastResponse(saved));
     }
 
@@ -139,6 +139,7 @@ public class ChatController {
     public static class BroadcastRequest {
         private String subject;
         private String body;
+        private String attachmentsJson;
     }
 
     @lombok.Data
@@ -148,6 +149,7 @@ public class ChatController {
         private String body;
         private String from;
         private String sentDate;
+        private String attachmentsJson;
     }
 
     private BroadcastResponse convertToBroadcastResponse(com.btctech.mailapp.entity.GroupBroadcast broadcast) {
@@ -157,6 +159,7 @@ public class ChatController {
         response.setBody(broadcast.getBody());
         response.setFrom(broadcast.getSenderEmail());
         response.setSentDate(broadcast.getSentDate().toString());
+        response.setAttachmentsJson(broadcast.getAttachmentsJson());
         return response;
     }
 }

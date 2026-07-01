@@ -105,7 +105,7 @@ public class ChatService {
     }
 
     @Transactional
-    public GroupBroadcast saveBroadcast(Long chatId, String senderEmail, String subject, String body) {
+    public GroupBroadcast saveBroadcast(Long chatId, String senderEmail, String subject, String body, String attachmentsJson) {
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new RuntimeException("Chat not found"));
         if (chat.getType() != ChatType.GROUP) {
@@ -116,6 +116,7 @@ public class ChatService {
                 .senderEmail(senderEmail)
                 .subject(subject)
                 .body(body)
+                .attachmentsJson(attachmentsJson)
                 .sentDate(java.time.LocalDateTime.now())
                 .build();
         return groupBroadcastRepository.save(broadcast);

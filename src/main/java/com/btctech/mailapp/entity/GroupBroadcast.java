@@ -34,4 +34,7 @@ public class GroupBroadcast {
 
     @Column(nullable = false)
     private LocalDateTime sentDate;
+
+    @Column(name = "attachments_json", columnDefinition = "LONGTEXT")
+    private String attachmentsJson;
 }
