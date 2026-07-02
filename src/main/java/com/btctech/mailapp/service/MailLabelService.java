@@ -51,6 +51,37 @@ public class MailLabelService {
     }
 
     @Transactional
+    public MailLabel updateLabel(String userEmail, Long labelId, String name, String colorHex, Long parentId) {
+        MailLabel label = labelRepository.findById(labelId)
+                .orElseThrow(() -> new MailException("Label not found"));
+
+        if (!label.getUserEmail().equals(userEmail)) {
+            throw new MailException("You do not have permission to edit this label");
+        }
+
+        if (!label.getName().equals(name) && labelRepository.existsByUserEmailAndName(userEmail, name)) {
+            throw new MailException("Label with name '" + name + "' already exists");
+        }
+
+        if (parentId != null) {
+            if (parentId.equals(labelId)) {
+                throw new MailException("A label cannot be its own parent");
+            }
+            MailLabel parent = labelRepository.findById(parentId)
+                    .orElseThrow(() -> new MailException("Parent label not found"));
+            if (!parent.getUserEmail().equals(userEmail)) {
+                throw new MailException("Unauthorized parent label");
+            }
+        }
+
+        label.setName(name);
+        label.setColorHex(colorHex);
+        label.setParentId(parentId);
+
+        return labelRepository.save(label);
+    }
+
+    @Transactional
     public void deleteLabel(String userEmail, Long labelId) {
         MailLabel label = labelRepository.findById(labelId)
                 .orElseThrow(() -> new MailException("Label not found"));

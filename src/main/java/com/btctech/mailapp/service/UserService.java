@@ -117,6 +117,7 @@ public class UserService {
         if (newSettings.getAccentColor() != null) existing.setAccentColor(newSettings.getAccentColor());
         if (newSettings.getFontSize() != null) existing.setFontSize(newSettings.getFontSize());
         if (newSettings.getDensity() != null) existing.setDensity(newSettings.getDensity());
+        if (newSettings.getUndoSendDelay() != null) existing.setUndoSendDelay(newSettings.getUndoSendDelay());
         
         if (newSettings.getTwoFactorEnabled() != null) existing.setTwoFactorEnabled(newSettings.getTwoFactorEnabled());
         if (newSettings.getBiometricsEnabled() != null) existing.setBiometricsEnabled(newSettings.getBiometricsEnabled());

@@ -34,6 +34,16 @@ public class MailLabelController {
         return ResponseEntity.ok(ApiResponse.success(label, "Label created successfully"));
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<MailLabel>> updateLabel(
+            @PathVariable Long id,
+            @RequestBody MailLabel request,
+            Authentication authentication) {
+        String email = authentication.getName();
+        MailLabel label = labelService.updateLabel(email, id, request.getName(), request.getColorHex(), request.getParentId());
+        return ResponseEntity.ok(ApiResponse.success(label, "Label updated successfully"));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteLabel(
             @PathVariable Long id,

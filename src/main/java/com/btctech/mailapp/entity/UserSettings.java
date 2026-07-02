@@ -67,4 +67,8 @@ public class UserSettings {
 
     @Builder.Default
     private String language = "en_US";
+
+    // Composing Settings
+    @Builder.Default
+    private Integer undoSendDelay = 0;
 }

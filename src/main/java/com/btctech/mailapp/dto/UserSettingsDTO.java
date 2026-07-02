@@ -37,4 +37,6 @@ public class UserSettingsDTO {
     private Boolean twoFactorEnabled;
     private Boolean biometricsEnabled;
     private String language;
+    
+    private Integer undoSendDelay;
 }

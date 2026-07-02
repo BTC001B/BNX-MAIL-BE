@@ -10,8 +10,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -176,6 +180,7 @@ public class UserController {
                 .accentColor(settingsUpdate.getAccentColor())
                 .fontSize(settingsUpdate.getFontSize())
                 .density(settingsUpdate.getDensity())
+                .undoSendDelay(settingsUpdate.getUndoSendDelay())
                 .twoFactorEnabled(settingsUpdate.getTwoFactorEnabled())
                 .biometricsEnabled(settingsUpdate.getBiometricsEnabled())
                 .language(settingsUpdate.getLanguage())
@@ -207,6 +212,7 @@ public class UserController {
                 .density(saved.getDensity())
                 .profilePictureUrl(user.getProfilePicture() != null ? "/api/users/profile-picture/" + user.getUsername() : null)
                 .storageLimit(saved.getStorageLimit())
+                .undoSendDelay(saved.getUndoSendDelay())
                 .twoFactorEnabled(saved.getTwoFactorEnabled())
                 .biometricsEnabled(saved.getBiometricsEnabled())
                 .language(saved.getLanguage())
