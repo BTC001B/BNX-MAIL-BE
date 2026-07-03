@@ -145,6 +145,7 @@ public class UserController {
                 .density(settings.getDensity())
                 .profilePictureUrl(user.getProfilePicture() != null ? "/api/users/profile-picture/" + user.getUsername() : null)
                 .storageLimit(settings.getStorageLimit())
+                .undoSendDelay(settings.getUndoSendDelay())
                 .twoFactorEnabled(user.getTwoFactorEnabled())
                 .biometricsEnabled(settings.getBiometricsEnabled())
                 .language(settings.getLanguage())
