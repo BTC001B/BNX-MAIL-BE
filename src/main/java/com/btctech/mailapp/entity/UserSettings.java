@@ -71,4 +71,8 @@ public class UserSettings {
     // Composing Settings
     @Builder.Default
     private Integer undoSendDelay = 0;
+
+    // Layout Settings
+    @Builder.Default
+    private String readingPaneMode = "no_split";
 }

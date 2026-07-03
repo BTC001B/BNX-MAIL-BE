@@ -39,4 +39,6 @@ public class UserSettingsDTO {
     private String language;
     
     private Integer undoSendDelay;
+    
+    private String readingPaneMode;
 }

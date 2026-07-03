@@ -122,6 +122,7 @@ public class UserService {
         if (newSettings.getTwoFactorEnabled() != null) existing.setTwoFactorEnabled(newSettings.getTwoFactorEnabled());
         if (newSettings.getBiometricsEnabled() != null) existing.setBiometricsEnabled(newSettings.getBiometricsEnabled());
         if (newSettings.getLanguage() != null) existing.setLanguage(newSettings.getLanguage());
+        if (newSettings.getReadingPaneMode() != null) existing.setReadingPaneMode(newSettings.getReadingPaneMode());
         
         return userSettingsRepository.save(existing);
     }
