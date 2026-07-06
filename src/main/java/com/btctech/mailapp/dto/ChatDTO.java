@@ -48,4 +48,15 @@ public class ChatDTO {
     public static class AddMembers {
         private List<String> emails;
     }
+
+    @Data
+    public static class InvitationResponse {
+        private Long id;
+        private Long chatId;
+        private String chatName;
+        private ChatType chatType;
+        private String inviterEmail;
+        private String status;
+        private String createdAt;
+    }
 }

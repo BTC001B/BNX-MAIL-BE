@@ -30,8 +30,11 @@ public class ChatController {
     }
 
     @PostMapping("/group")
-    public ResponseEntity<ChatDTO> createGroupChat(@RequestBody ChatDTO.CreateGroup request) {
-        Chat chat = chatService.createGroupChat(request.getName(), request.getMembers());
+    public ResponseEntity<ChatDTO> createGroupChat(
+            @RequestBody ChatDTO.CreateGroup request,
+            org.springframework.security.core.Authentication authentication) {
+        String creatorEmail = authentication.getName();
+        Chat chat = chatService.createGroupChat(request.getName(), request.getMembers(), creatorEmail);
         return ResponseEntity.ok(convertToDTO(chat));
     }
 
@@ -103,9 +106,50 @@ public class ChatController {
     @PostMapping("/{chatId}/members")
     public ResponseEntity<ChatDTO> addMembers(
             @PathVariable Long chatId,
-            @RequestBody ChatDTO.AddMembers request) {
-        Chat updated = chatService.addMembersToGroup(chatId, request.getEmails());
+            @RequestBody ChatDTO.AddMembers request,
+            org.springframework.security.core.Authentication authentication) {
+        String inviterEmail = authentication.getName();
+        Chat updated = chatService.inviteMembersToGroup(chatId, request.getEmails(), inviterEmail);
         return ResponseEntity.ok(convertToDTO(updated));
+    }
+
+    @GetMapping("/invitations")
+    public ResponseEntity<List<ChatDTO.InvitationResponse>> getInvitations(
+            org.springframework.security.core.Authentication authentication) {
+        String userEmail = authentication.getName();
+        List<com.btctech.mailapp.entity.ChatInvitation> invitations = chatService.getPendingInvitations(userEmail);
+        List<ChatDTO.InvitationResponse> response = invitations.stream().map(inv -> {
+            ChatDTO.InvitationResponse res = new ChatDTO.InvitationResponse();
+            res.setId(inv.getId());
+            res.setChatId(inv.getChat().getId());
+            res.setChatName(inv.getChat().getName());
+            res.setChatType(inv.getChat().getType());
+            if (inv.getInviter() != null) {
+                res.setInviterEmail(inv.getInviter().getEmail() != null ? inv.getInviter().getEmail() : inv.getInviter().getUsername());
+            } else {
+                res.setInviterEmail(null);
+            }
+            res.setStatus(inv.getStatus().name());
+            res.setCreatedAt(inv.getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+            return res;
+        }).collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/invitations/{id}/accept")
+    public ResponseEntity<Void> acceptInvitation(
+            @PathVariable Long id,
+            org.springframework.security.core.Authentication authentication) {
+        chatService.acceptInvitation(id, authentication.getName());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/invitations/{id}/reject")
+    public ResponseEntity<Void> rejectInvitation(
+            @PathVariable Long id,
+            org.springframework.security.core.Authentication authentication) {
+        chatService.rejectInvitation(id, authentication.getName());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{chatId}/members")
