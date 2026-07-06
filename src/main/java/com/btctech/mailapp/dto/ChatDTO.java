@@ -13,6 +13,7 @@ public class ChatDTO {
     private String lastMessage;
     private String lastMessageTime;
     private Integer unreadCount;
+    private String creatorEmail;
 
     @Data
     public static class CreateDirect {

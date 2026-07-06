@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -78,6 +79,10 @@ public class ChatController {
         dto.setMemberEmails(chat.getMembers().stream()
                 .map(u -> u.getEmail() != null ? u.getEmail() : u.getUsername())
                 .collect(Collectors.toList()));
+        
+        if (chat.getCreator() != null) {
+            dto.setCreatorEmail(chat.getCreator().getEmail() != null ? chat.getCreator().getEmail() : chat.getCreator().getUsername());
+        }
         
         // Populate last message info efficiently
         chatMessageRepository.findFirstByChatOrderByTimestampDesc(chat).ifPresentOrElse(last -> {
@@ -206,5 +211,17 @@ public class ChatController {
         response.setSentDate(broadcast.getSentDate().toString());
         response.setAttachmentsJson(broadcast.getAttachmentsJson());
         return response;
+    }
+
+    @PostMapping("/{id}/leave")
+    public ResponseEntity<?> leaveChat(@PathVariable Long id, org.springframework.security.core.Authentication authentication) {
+        chatService.leaveChat(id, authentication.getName());
+        return ResponseEntity.ok(Map.of("message", "Left chat successfully"));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteChat(@PathVariable Long id, org.springframework.security.core.Authentication authentication) {
+        chatService.deleteChat(id, authentication.getName());
+        return ResponseEntity.ok(Map.of("message", "Chat deleted successfully"));
     }
 }

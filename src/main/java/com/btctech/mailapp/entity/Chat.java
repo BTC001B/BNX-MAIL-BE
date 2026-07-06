@@ -29,6 +29,10 @@ public class Chat {
     )
     private Set<User> members = new HashSet<>();
 
+    @ManyToOne
+    @JoinColumn(name = "creator_id")
+    private User creator;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

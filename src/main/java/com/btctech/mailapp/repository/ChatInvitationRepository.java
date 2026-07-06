@@ -14,4 +14,6 @@ import java.util.Optional;
 public interface ChatInvitationRepository extends JpaRepository<ChatInvitation, Long> {
     List<ChatInvitation> findByInviteeAndStatus(User invitee, InvitationStatus status);
     Optional<ChatInvitation> findByChatAndInviteeAndStatus(Chat chat, User invitee, InvitationStatus status);
+    
+    void deleteByChat(Chat chat);
 }

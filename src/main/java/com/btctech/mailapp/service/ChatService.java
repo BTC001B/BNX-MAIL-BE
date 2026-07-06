@@ -59,6 +59,7 @@ public class ChatService {
         User creator = userRepository.findByEmail(creatorEmail).orElseGet(() -> userRepository.findByUsername(creatorEmail).orElse(null));
         if (creator != null) {
             members.add(creator);
+            chat.setCreator(creator);
         }
         chat.setMembers(members);
         Chat savedChat = chatRepository.save(chat);
@@ -141,12 +142,46 @@ public class ChatService {
     }
 
     @Transactional
+    public void deleteChat(Long chatId, String userEmail) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new RuntimeException("Chat not found"));
+        User user = userRepository.findByEmail(userEmail).orElseGet(() -> userRepository.findByUsername(userEmail).orElse(null));
+        
+        if (chat.getCreator() == null || user == null || !chat.getCreator().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized: Only the creator can delete the chat");
+        }
+        
+        // Remove associated messages
+        chatMessageRepository.findByChatOrderByTimestampAsc(chat).forEach(chatMessageRepository::delete);
+        
+        // Remove associated broadcasts
+        groupBroadcastRepository.findByChatIdOrderBySentDateDesc(chatId).forEach(groupBroadcastRepository::delete);
+        
+        // Remove associated invitations
+        chatInvitationRepository.deleteByChat(chat);
+        
+        chatRepository.delete(chat);
+    }
+
+    @Transactional
+    public void leaveChat(Long chatId, String userEmail) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new RuntimeException("Chat not found"));
+        User user = userRepository.findByEmail(userEmail).orElseGet(() -> userRepository.findByUsername(userEmail).orElse(null));
+        if (user == null) {
+            throw new RuntimeException("User not found");
+        }
+        chat.getMembers().remove(user);
+        chatRepository.save(chat);
+    }
+
+    @Transactional
     public void acceptInvitation(Long invitationId, String userEmail) {
         ChatInvitation invitation = chatInvitationRepository.findById(invitationId)
                 .orElseThrow(() -> new RuntimeException("Invitation not found"));
         
         User invitee = invitation.getInvitee();
-        if (!invitee.getEmail().equals(userEmail) && !invitee.getUsername().equals(userEmail)) {
+        if (!userEmail.equals(invitee.getEmail()) && !userEmail.equals(invitee.getUsername())) {
             throw new RuntimeException("Unauthorized");
         }
         if (invitation.getStatus() != InvitationStatus.PENDING) {
@@ -167,7 +202,7 @@ public class ChatService {
                 .orElseThrow(() -> new RuntimeException("Invitation not found"));
         
         User invitee = invitation.getInvitee();
-        if (!invitee.getEmail().equals(userEmail) && !invitee.getUsername().equals(userEmail)) {
+        if (!userEmail.equals(invitee.getEmail()) && !userEmail.equals(invitee.getUsername())) {
             throw new RuntimeException("Unauthorized");
         }
         if (invitation.getStatus() != InvitationStatus.PENDING) {
