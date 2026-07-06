@@ -22,6 +22,9 @@ public class ChatMessage {
     @Column(name = "content", nullable = false, columnDefinition = "LONGTEXT")
     private String content;
 
+    @Column(name = "attachments_json", columnDefinition = "LONGTEXT")
+    private String attachmentsJson;
+
     @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp = LocalDateTime.now();
 }

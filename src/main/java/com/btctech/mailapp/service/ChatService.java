@@ -72,7 +72,7 @@ public class ChatService {
     }
 
     @Transactional
-    public ChatMessage saveMessage(Long chatId, String senderEmail, String content) {
+    public ChatMessage saveMessage(Long chatId, String senderEmail, String content, String attachmentsJson) {
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new RuntimeException("Chat not found"));
         
@@ -80,6 +80,7 @@ public class ChatService {
         message.setChat(chat);
         message.setSenderEmail(senderEmail);
         message.setContent(content);
+        message.setAttachmentsJson(attachmentsJson);
         return chatMessageRepository.save(message);
     }
 

@@ -49,7 +49,7 @@ public class ChatController {
 
     @PostMapping("/message")
     public ResponseEntity<ChatDTO.MessageResponse> sendMessageRest(@RequestBody ChatDTO.MessageRequest request) {
-        ChatMessage saved = chatService.saveMessage(request.getChatId(), request.getSender(), request.getMessage());
+        ChatMessage saved = chatService.saveMessage(request.getChatId(), request.getSender(), request.getMessage(), request.getAttachmentsJson());
         ChatDTO.MessageResponse response = convertToMessageResponse(saved);
         
         // Even if sent via REST, we broadcast to WebSocket for real-time
@@ -60,7 +60,7 @@ public class ChatController {
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload ChatDTO.MessageRequest request) {
-        ChatMessage saved = chatService.saveMessage(request.getChatId(), request.getSender(), request.getMessage());
+        ChatMessage saved = chatService.saveMessage(request.getChatId(), request.getSender(), request.getMessage(), request.getAttachmentsJson());
         ChatDTO.MessageResponse response = convertToMessageResponse(saved);
         
         // Broadcast to the chat topic
@@ -96,6 +96,7 @@ public class ChatController {
         response.setSender(message.getSenderEmail());
         response.setContent(message.getContent());
         response.setTimestamp(message.getTimestamp().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+        response.setAttachmentsJson(message.getAttachmentsJson());
         return response;
     }
 

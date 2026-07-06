@@ -31,6 +31,7 @@ public class ChatDTO {
         private Long chatId;
         private String sender;
         private String message;
+        private String attachmentsJson;
     }
 
     @Data
@@ -40,6 +41,7 @@ public class ChatDTO {
         private String sender;
         private String content;
         private String timestamp;
+        private String attachmentsJson;
     }
 
     @Data
