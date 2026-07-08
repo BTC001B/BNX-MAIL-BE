@@ -240,4 +240,16 @@ public class ChatService {
     public List<GroupBroadcast> getBroadcasts(Long chatId) {
         return groupBroadcastRepository.findByChatIdOrderBySentDateDesc(chatId);
     }
+
+    @Transactional
+    public Chat renameChat(Long chatId, String newName, String userEmail) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new RuntimeException("Chat not found"));
+        User user = userRepository.findByEmail(userEmail).orElseGet(() -> userRepository.findByUsername(userEmail).orElse(null));
+        if (chat.getCreator() == null || user == null || !chat.getCreator().getId().equals(user.getId())) {
+            throw new RuntimeException("Unauthorized: Only the creator can rename the chat");
+        }
+        chat.setName(newName);
+        return chatRepository.save(chat);
+    }
 }

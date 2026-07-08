@@ -224,4 +224,14 @@ public class ChatController {
         chatService.deleteChat(id, authentication.getName());
         return ResponseEntity.ok(Map.of("message", "Chat deleted successfully"));
     }
+
+    @PatchMapping("/{id}/name")
+    public ResponseEntity<?> renameChat(@PathVariable Long id, @RequestBody Map<String, String> payload, org.springframework.security.core.Authentication authentication) {
+        String newName = payload.get("name");
+        if (newName == null || newName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Name cannot be empty"));
+        }
+        Chat updated = chatService.renameChat(id, newName.trim(), authentication.getName());
+        return ResponseEntity.ok(convertToDTO(updated));
+    }
 }
