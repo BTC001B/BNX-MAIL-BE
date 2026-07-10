@@ -34,7 +34,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints (no authentication)
                         .requestMatchers("/api/users/profile-picture/**").permitAll()
-                        .requestMatchers("/api/auth/register", "/api/auth/login/**", "/api/auth/refresh", "/api/auth/forgot-password/**", "/api/auth/reset-password").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login/**", "/api/auth/refresh", "/api/auth/forgot-password/**", "/api/auth/reset-password", "/api/auth/username-suggestions", "/api/auth/child/**").permitAll()
                         .requestMatchers("/api/verification/status/**", "/api/verification/webhook").permitAll()
                         .requestMatchers("/api/oauth/token").permitAll() // ✅ Public token exchange
                         .requestMatchers("/api/mail/public/send").permitAll() // ✅ Public email sending

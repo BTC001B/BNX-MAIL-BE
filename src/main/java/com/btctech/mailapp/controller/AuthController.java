@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -59,6 +60,19 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(data, "User registered successfully"));
+    }
+
+    /**
+     * Generate username suggestions based on name and DOB
+     */
+    @GetMapping("/username-suggestions")
+    public ResponseEntity<ApiResponse<List<String>>> getUsernameSuggestions(
+            @RequestParam String firstName,
+            @RequestParam String lastName,
+            @RequestParam String dob) {
+        log.info("Generating username suggestions for {} {}, dob: {}", firstName, lastName, dob);
+        List<String> suggestions = authService.generateUsernameSuggestions(firstName, lastName, dob);
+        return ResponseEntity.ok(ApiResponse.success(suggestions, "Suggestions generated successfully"));
     }
 
     /**
@@ -253,6 +267,27 @@ public class AuthController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(null, "Password changed successfully"));
+    }
+
+    @PostMapping("/child/send-parent-otp")
+    public ResponseEntity<ApiResponse<Void>> sendParentOtp(@RequestBody java.util.Map<String, String> request) {
+        String parentEmail = request.get("parentEmail");
+        if (parentEmail == null || parentEmail.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Parent email is required"));
+        }
+        authService.sendParentOtp(parentEmail);
+        return ResponseEntity.ok(ApiResponse.success(null, "OTP sent to parent email"));
+    }
+
+    @PostMapping("/child/verify-parent-otp")
+    public ResponseEntity<ApiResponse<Void>> verifyParentOtp(@RequestBody java.util.Map<String, String> request) {
+        String parentEmail = request.get("parentEmail");
+        String otp = request.get("otp");
+        if (parentEmail == null || parentEmail.trim().isEmpty() || otp == null || otp.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Parent email and OTP are required"));
+        }
+        authService.verifyParentOtp(parentEmail, otp);
+        return ResponseEntity.ok(ApiResponse.success(null, "OTP verified successfully"));
     }
 
     /**

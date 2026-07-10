@@ -19,10 +19,13 @@ import com.btctech.mailapp.dto.SendOtpRequest;
 import com.btctech.mailapp.dto.ResetPasswordRequest;
 import com.btctech.mailapp.entity.PasswordResetToken;
 import com.btctech.mailapp.repository.PasswordResetTokenRepository;
+import com.btctech.mailapp.repository.UserRepository;
+import com.btctech.mailapp.repository.MailAccountRepository;
 import java.security.SecureRandom;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -31,6 +34,50 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private final java.util.Map<String, ParentOtpData> parentOtpCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static class ParentOtpData {
+        private final String otp;
+        private final java.time.LocalDateTime expiryTime;
+
+        public ParentOtpData(String otp, int minutesToLive) {
+            this.otp = otp;
+            this.expiryTime = java.time.LocalDateTime.now().plusMinutes(minutesToLive);
+        }
+
+        public boolean isExpired() {
+            return java.time.LocalDateTime.now().isAfter(expiryTime);
+        }
+    }
+
+    public void sendParentOtp(String parentEmail) {
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        int otpValue = 100000 + random.nextInt(900000);
+        String otp = String.valueOf(otpValue);
+
+        parentOtpCache.put(parentEmail.toLowerCase().trim(), new ParentOtpData(otp, 15));
+
+        sendOtpEmail(parentEmail, otp);
+        log.info("✓ Parent signup OTP sent to: {}", parentEmail);
+    }
+
+    public boolean verifyParentOtp(String parentEmail, String otp) {
+        String key = parentEmail.toLowerCase().trim();
+        ParentOtpData data = parentOtpCache.get(key);
+        if (data == null) {
+            throw new MailException("OTP not found or expired");
+        }
+        if (data.isExpired()) {
+            parentOtpCache.remove(key);
+            throw new MailException("OTP has expired");
+        }
+        if (!data.otp.equals(otp)) {
+            throw new MailException("Invalid OTP code");
+        }
+        parentOtpCache.remove(key);
+        return true;
+    }
+
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtUtil jwtUtil;
     private final MailboxService mailboxService;
@@ -38,6 +85,81 @@ public class AuthService {
     private final UserService userService;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final JavaMailSender javaMailSender;
+    private final UserRepository userRepository;
+    private final MailAccountRepository mailAccountRepository;
+
+    /**
+     * Generate username suggestions based on firstName, lastName and dob
+     */
+    public List<String> generateUsernameSuggestions(String firstName, String lastName, String dob) {
+        List<String> suggestions = new ArrayList<>();
+        if (firstName == null || firstName.trim().isEmpty()) {
+            return suggestions;
+        }
+
+        String fn = firstName.trim().toLowerCase().replaceAll("[^a-z0-9]", "");
+        String ln = (lastName != null) ? lastName.trim().toLowerCase().replaceAll("[^a-z0-9]", "") : "";
+        
+        String yearStr = "89"; // default fallback
+        String fullYearStr = "1989";
+        String dayStr = "01";
+        String monthStr = "01";
+        
+        if (dob != null && !dob.trim().isEmpty()) {
+            try {
+                String[] parts = dob.split("-");
+                if (parts.length >= 3) {
+                    fullYearStr = parts[0];
+                    if (fullYearStr.length() >= 4) {
+                        yearStr = fullYearStr.substring(2);
+                    }
+                    monthStr = parts[1];
+                    dayStr = parts[2];
+                }
+            } catch (Exception e) {
+                // ignore, keep fallback
+            }
+        }
+
+        // Candidates templates list
+        List<String> templates = new ArrayList<>();
+        templates.add(fn + yearStr); // e.g. sridharan89
+        if (!ln.isEmpty()) {
+            templates.add(fn + ln.substring(0, 1) + yearStr); // e.g. sridharank89
+            templates.add(ln + fn + yearStr); // e.g. kumarsridharan89
+        }
+        templates.add(fn + fullYearStr); // e.g. sridharan1989
+        templates.add(fn + dayStr + monthStr); // e.g. sridharan1205
+        if (!ln.isEmpty()) {
+            templates.add(fn + ln); // e.g. sridharankumar
+            templates.add(fn.substring(0, 1) + ln + yearStr); // e.g. skumar89
+        }
+
+        // Filter and check database uniqueness
+        for (String candidate : templates) {
+            if (suggestions.size() >= 3) break;
+            if (candidate.length() >= 3 && isUsernameAvailable(candidate)) {
+                suggestions.add(candidate);
+            }
+        }
+
+        // If we still don't have 3, append numeric suffix to first option until we get 3
+        int suffix = 1;
+        while (suggestions.size() < 3) {
+            String candidate = fn + yearStr + suffix;
+            if (isUsernameAvailable(candidate)) {
+                suggestions.add(candidate);
+            }
+            suffix++;
+        }
+
+        return suggestions;
+    }
+
+    private boolean isUsernameAvailable(String username) {
+        return !userRepository.existsByUsername(username) && 
+               !mailAccountRepository.existsByEmail(username + "@bnxmail.com");
+    }
 
     /**
      * Create and persist a refresh token with metadata
