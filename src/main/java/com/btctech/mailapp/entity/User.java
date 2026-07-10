@@ -79,7 +79,8 @@ public class User {
     @Column(name = "two_factor_secret")
     private String twoFactorSecret;
 
-    @Column(name = "profile_picture", length = 255)
+    @Lob
+    @Column(name = "profile_picture", columnDefinition = "LONGTEXT")
     private String profilePicture;
     
     @PreUpdate

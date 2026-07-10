@@ -87,6 +87,7 @@ public class AuthService {
     private final JavaMailSender javaMailSender;
     private final UserRepository userRepository;
     private final MailAccountRepository mailAccountRepository;
+    private final com.btctech.mailapp.repository.BusinessProfileRepository businessProfileRepository;
 
     /**
      * Generate username suggestions based on firstName, lastName and dob
@@ -275,6 +276,13 @@ public class AuthService {
                         .build())
                 .collect(Collectors.toList());
 
+        boolean onboardedVal = true;
+        if (user.getAccountType() == com.btctech.mailapp.entity.AccountType.BUSINESS) {
+            onboardedVal = businessProfileRepository.findByUserId(user.getId())
+                    .map(com.btctech.mailapp.entity.BusinessProfile::getOnboarded)
+                    .orElse(false);
+        }
+
         return LoginResponseData.builder()
                 .userId(user.getId())
                 .username(user.getUsername())
@@ -292,6 +300,7 @@ public class AuthService {
                 .profilePictureUrl(user.getProfilePicture() != null ? "/api/users/profile-picture/" + user.getUsername() : null)
                 .mailboxes(boxSummaries)
                 .isAutoUpgraded(autoUpgraded)
+                .onboarded(onboardedVal)
                 .loginAt(LocalDateTime.now())
                 .build();
     }

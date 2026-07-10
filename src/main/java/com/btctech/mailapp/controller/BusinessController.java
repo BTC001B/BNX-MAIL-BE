@@ -18,6 +18,8 @@ public class BusinessController {
 
     private final BusinessService businessService;
     private final JwtUtil jwtUtil;
+    private final com.btctech.mailapp.repository.BusinessProfileRepository businessProfileRepository;
+    private final com.btctech.mailapp.repository.UserRepository userRepository;
 
     /**
      * Domain Init API
@@ -90,5 +92,56 @@ public class BusinessController {
         
         return ResponseEntity.ok(
                 ApiResponse.success(data, "Welcome to the team! Invitation accepted."));
+    }
+
+    /**
+     * Business Onboarding API
+     */
+    @PostMapping("/onboard")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> onboardBusiness(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody com.btctech.mailapp.dto.BusinessOnboardingRequest request) {
+
+        String token = authHeader.replace("Bearer ", "");
+        String email = jwtUtil.extractEmail(token); 
+        com.btctech.mailapp.entity.User user = businessService.getUserByEmail(email);
+
+        log.info("Onboarding request for business user: {}", user.getUsername());
+
+        com.btctech.mailapp.entity.BusinessProfile profile = businessProfileRepository.findByUserId(user.getId())
+                .orElseGet(() -> {
+                    com.btctech.mailapp.entity.BusinessProfile bp = new com.btctech.mailapp.entity.BusinessProfile();
+                    bp.setUser(user);
+                    bp.setBusinessName(user.getOrganization() != null ? user.getOrganization().getName() : "My Business");
+                    return bp;
+                });
+
+        profile.setBusinessType(request.getBusinessType());
+        profile.setIndustry(request.getIndustry());
+        profile.setCompanySize(request.getCompanySize());
+        profile.setBusinessWebsite(request.getBusinessWebsite());
+        profile.setBusinessAddress(request.getBusinessAddress());
+        profile.setTimeZone(request.getTimeZone());
+        profile.setLanguage(request.getLanguage());
+        profile.setCompanyLogo(request.getCompanyLogo());
+        profile.setProfilePhoto(request.getProfilePhoto());
+        profile.setAcceptTerms(request.getAcceptTerms());
+        profile.setOnboarded(true);
+
+        businessProfileRepository.save(profile);
+
+        // Also update the general profile_picture of user if profile photo is uploaded
+        if (request.getProfilePhoto() != null && !request.getProfilePhoto().isEmpty()) {
+            user.setProfilePicture(request.getProfilePhoto());
+            userRepository.save(user);
+        }
+
+        Map<String, Object> data = Map.of(
+            "onboarded", true,
+            "businessName", profile.getBusinessName(),
+            "businessType", profile.getBusinessType()
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(data, "Business profile onboarded successfully"));
     }
 }

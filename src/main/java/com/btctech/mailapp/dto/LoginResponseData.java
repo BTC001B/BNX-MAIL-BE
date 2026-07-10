@@ -28,6 +28,7 @@ public class LoginResponseData {
     private List<MailboxSummary> mailboxes;
 
     private Boolean isAutoUpgraded;
+    private Boolean onboarded;
     private LocalDateTime loginAt;
 
     @Data

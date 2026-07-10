@@ -30,6 +30,7 @@ public class UserController {
     private final UserService userService;
     private final com.btctech.mailapp.repository.MailAccountRepository mailAccountRepository;
     private final JwtUtil jwtUtil;
+    private final com.btctech.mailapp.repository.BusinessProfileRepository businessProfileRepository;
 
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getCurrentUser(
@@ -67,9 +68,14 @@ public class UserController {
         data.put("dob", user.getDob());
         data.put("accountType", user.getAccountType());
         data.put("isPrimary", primaryAccount.isPresent() && primaryAccount.get().getIsPrimary());
-        data.put("twoFactorEnabled", user.getTwoFactorEnabled());
-        data.put("createdAt", user.getCreatedAt());
-        
+        boolean onboarded = true;
+        if (user.getAccountType() == com.btctech.mailapp.entity.AccountType.BUSINESS) {
+            onboarded = businessProfileRepository.findByUserId(user.getId())
+                    .map(com.btctech.mailapp.entity.BusinessProfile::getOnboarded)
+                    .orElse(false);
+        }
+        data.put("onboarded", onboarded);
+
         // Add storage info
         UserSettings settings = userService.getSettings(user);
         List<MailAccount> allAccounts = mailAccountRepository.findByUserId(user.getId());
