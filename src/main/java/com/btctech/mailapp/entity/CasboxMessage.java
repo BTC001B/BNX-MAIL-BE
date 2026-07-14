@@ -25,6 +25,9 @@ public class CasboxMessage {
     @Column(name = "body", columnDefinition = "LONGTEXT")
     private String body;
 
+    @Column(name = "attachments_json", columnDefinition = "LONGTEXT")
+    private String attachmentsJson;
+
     // SENT, DELIVERED, SEEN
     @Column(name = "status", nullable = false)
     private String status = "SENT";

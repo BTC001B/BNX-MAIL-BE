@@ -12,4 +12,6 @@ public class CasboxSendRequest {
     
     @NotBlank(message = "Body is required")
     private String body;
+    
+    private String attachmentsJson;
 }

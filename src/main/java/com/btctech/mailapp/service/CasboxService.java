@@ -27,6 +27,7 @@ public class CasboxService {
         message.setReceiverEmail(request.getReceiverEmail());
         message.setSubject(request.getSubject());
         message.setBody(request.getBody());
+        message.setAttachmentsJson(request.getAttachmentsJson());
         message.setStatus("SENT");
         message.setTimestamp(LocalDateTime.now());
 
@@ -36,6 +37,13 @@ public class CasboxService {
         // Send to receiver via WebSocket
         messagingTemplate.convertAndSendToUser(
                 request.getReceiverEmail(),
+                "/queue/casbox/messages",
+                dto
+        );
+
+        // Also send to sender via WebSocket for instant UI update
+        messagingTemplate.convertAndSendToUser(
+                senderEmail,
                 "/queue/casbox/messages",
                 dto
         );
@@ -101,6 +109,7 @@ public class CasboxService {
         dto.setReceiverEmail(entity.getReceiverEmail());
         dto.setSubject(entity.getSubject());
         dto.setBody(entity.getBody());
+        dto.setAttachmentsJson(entity.getAttachmentsJson());
         dto.setStatus(entity.getStatus());
         dto.setTimestamp(entity.getTimestamp());
         return dto;
