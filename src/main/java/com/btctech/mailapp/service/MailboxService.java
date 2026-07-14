@@ -14,8 +14,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.SimpleMailMessage;
 import java.io.File;
-
 import java.util.List;
 
 @Slf4j
@@ -28,6 +29,7 @@ public class MailboxService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SessionService sessionService;
+    private final JavaMailSender javaMailSender;
     
     @Value("${mail.domain}")
     private String mailDomain;
@@ -105,6 +107,23 @@ public class MailboxService {
             if (user.getEmail() == null || user.getEmail().isEmpty()) {
                 user.setEmail(fullEmail);
                 userRepository.save(user);
+            }
+
+            // Send welcome email to the newly created mailbox
+            try {
+                SimpleMailMessage welcomeMessage = new SimpleMailMessage();
+                welcomeMessage.setFrom("welcome@" + activeDomain);
+                welcomeMessage.setTo(fullEmail);
+                welcomeMessage.setSubject("Welcome to BNX Mail!");
+                welcomeMessage.setText("Dear " + user.getFirstName() + ",\n\n" +
+                        "Welcome to BNX Mail! Your secure email account (" + fullEmail + ") is now active and ready to use.\n\n" +
+                        "BNX Mail is designed with absolute privacy and advanced encryption to keep your digital identity and communications safe.\n\n" +
+                        "Best regards,\n" +
+                        "The BNX Mail Team");
+                javaMailSender.send(welcomeMessage);
+                log.info("Sent welcome email to new mailbox: {}", fullEmail);
+            } catch (Exception e) {
+                log.error("Failed to send welcome email to new mailbox {}: {}", fullEmail, e.getMessage());
             }
             
             return mailAccount;

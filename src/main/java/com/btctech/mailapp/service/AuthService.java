@@ -57,8 +57,23 @@ public class AuthService {
 
         parentOtpCache.put(parentEmail.toLowerCase().trim(), new ParentOtpData(otp, 15));
 
-        sendOtpEmail(parentEmail, otp);
+        sendParentOtpEmail(parentEmail, otp);
         log.info("✓ Parent signup OTP sent to: {}", parentEmail);
+    }
+
+    private void sendParentOtpEmail(String toAddress, String otp) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("beta@beta-softnet.com");
+            message.setTo(toAddress);
+            message.setSubject("BNX Mail Parent Consent Verification");
+            message.setText("Your verification code is: " + otp + "\nUse this code to verify your contact details and approve your child's BNX Mail account registration.\nThis code will expire in 15 minutes.");
+            javaMailSender.send(message);
+            log.info("Sent parent OTP verification email to {}", toAddress);
+        } catch (Exception e) {
+            log.error("Failed to send parent verification email: {}", e.getMessage());
+            throw new MailException("Failed to send verification email to parent. Please try again later.");
+        }
     }
 
     public boolean verifyParentOtp(String parentEmail, String otp) {
