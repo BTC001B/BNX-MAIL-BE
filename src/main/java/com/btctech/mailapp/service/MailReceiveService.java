@@ -1271,12 +1271,18 @@ public class MailReceiveService {
         return new String[]{plain, html};
     }
 
-    private boolean hasAttachments(Message message) throws MessagingException, IOException {
-        Object content = message.getContent();
-        if (content instanceof Multipart) {
-            Multipart mp = (Multipart) content;
+    private boolean hasAttachments(Part part) throws MessagingException, IOException {
+        if (part.isMimeType("multipart/*")) {
+            Multipart mp = (Multipart) part.getContent();
             for (int i = 0; i < mp.getCount(); i++) {
-                if (Part.ATTACHMENT.equalsIgnoreCase(mp.getBodyPart(i).getDisposition())) return true;
+                if (hasAttachments(mp.getBodyPart(i))) return true;
+            }
+        } else {
+            String disp = part.getDisposition();
+            if (Part.ATTACHMENT.equalsIgnoreCase(disp) || Part.INLINE.equalsIgnoreCase(disp)) {
+                if (part.getFileName() != null) return true;
+            } else if (part.isMimeType("message/rfc822") || part.isMimeType("message/delivery-status") || part.isMimeType("text/rfc822-headers")) {
+                return true;
             }
         }
         return false;
@@ -1289,9 +1295,13 @@ public class MailReceiveService {
             for (int i = 0; i < mp.getCount(); i++) names.addAll(extractAttachments(mp.getBodyPart(i)));
         } else {
             String disp = part.getDisposition();
+            String name = part.getFileName();
             if (Part.ATTACHMENT.equalsIgnoreCase(disp) || Part.INLINE.equalsIgnoreCase(disp)) {
-                String name = part.getFileName();
                 if (name != null) names.add(jakarta.mail.internet.MimeUtility.decodeText(name));
+            } else if (part.isMimeType("message/rfc822")) {
+                names.add(name != null ? jakarta.mail.internet.MimeUtility.decodeText(name) : "original_message.eml");
+            } else if (part.isMimeType("message/delivery-status") || part.isMimeType("text/rfc822-headers")) {
+                names.add(name != null ? jakarta.mail.internet.MimeUtility.decodeText(name) : "delivery_status.txt");
             }
         }
         return names;
@@ -1363,16 +1373,26 @@ public class MailReceiveService {
         }
     }
 
-    private void findAndWriteAttachment(Multipart mp, String name, java.io.OutputStream os) throws MessagingException, IOException {
+    private boolean findAndWriteAttachment(Multipart mp, String name, java.io.OutputStream os) throws MessagingException, IOException {
         for (int i = 0; i < mp.getCount(); i++) {
             BodyPart bp = mp.getBodyPart(i);
             String fn = bp.getFileName();
-            if (fn != null && jakarta.mail.internet.MimeUtility.decodeText(fn).equalsIgnoreCase(name)) {
-                bp.getDataHandler().getInputStream().transferTo(os);
-                return;
+            String decodedFn = fn != null ? jakarta.mail.internet.MimeUtility.decodeText(fn) : null;
+            
+            if (decodedFn == null) {
+                if (bp.isMimeType("message/rfc822")) decodedFn = "original_message.eml";
+                else if (bp.isMimeType("message/delivery-status") || bp.isMimeType("text/rfc822-headers")) decodedFn = "delivery_status.txt";
             }
-            if (bp.isMimeType("multipart/*")) findAndWriteAttachment((Multipart) bp.getContent(), name, os);
+            
+            if (decodedFn != null && decodedFn.equalsIgnoreCase(name)) {
+                bp.getDataHandler().getInputStream().transferTo(os);
+                return true;
+            }
+            if (bp.isMimeType("multipart/*")) {
+                if (findAndWriteAttachment((Multipart) bp.getContent(), name, os)) return true;
+            }
         }
+        return false;
     }
 
     @Transactional
