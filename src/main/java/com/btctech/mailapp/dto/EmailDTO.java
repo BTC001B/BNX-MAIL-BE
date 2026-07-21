@@ -20,6 +20,8 @@ public class EmailDTO {
     private String from;
     private String avatarUrl;
     private String to;
+    private String cc;
+    private String bcc;
     private String subject;
     private String body;
     private String htmlBody;

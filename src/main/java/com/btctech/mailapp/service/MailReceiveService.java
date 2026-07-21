@@ -596,21 +596,32 @@ public class MailReceiveService {
                 throw new MailException("Email with UID " + uid + " no longer exists in " + sourceAlias);
             }
 
+            boolean isDraft = message.isSet(Flags.Flag.DRAFT);
             boolean isSentMessage = false;
-            Address[] fromAddresses = message.getFrom();
-            if (fromAddresses != null) {
-                for (Address address : fromAddresses) {
-                    if (address instanceof InternetAddress) {
-                        String fromEmail = ((InternetAddress) address).getAddress();
-                        if (email.equalsIgnoreCase(fromEmail)) {
-                            isSentMessage = true;
-                            break;
+            
+            if (!isDraft) {
+                Address[] fromAddresses = message.getFrom();
+                if (fromAddresses != null) {
+                    for (Address address : fromAddresses) {
+                        if (address instanceof InternetAddress) {
+                            String fromEmail = ((InternetAddress) address).getAddress();
+                            if (email.equalsIgnoreCase(fromEmail)) {
+                                isSentMessage = true;
+                                break;
+                            }
                         }
                     }
                 }
             }
 
-            String targetFolderName = isSentMessage ? resolveSentFolderName(store) : "INBOX";
+            String targetFolderName;
+            if (isDraft) {
+                targetFolderName = resolveDraftsFolderName(store);
+            } else if (isSentMessage) {
+                targetFolderName = resolveSentFolderName(store);
+            } else {
+                targetFolderName = "INBOX";
+            }
             inbox = store.getFolder(targetFolderName);
             if (!inbox.exists()) inbox.create(Folder.HOLDS_MESSAGES);
 
@@ -1051,12 +1062,32 @@ public class MailReceiveService {
 
         Address[] to = message.getRecipients(Message.RecipientType.TO);
         if (to != null && to.length > 0) {
-            Address addr = to[0];
-            if (addr instanceof InternetAddress) {
-                dto.setTo(addr.toString());
-            } else {
-                dto.setTo(addr.toString());
+            StringBuilder toStr = new StringBuilder();
+            for (Address addr : to) {
+                if (toStr.length() > 0) toStr.append(", ");
+                toStr.append(addr.toString());
             }
+            dto.setTo(toStr.toString());
+        }
+
+        Address[] cc = message.getRecipients(Message.RecipientType.CC);
+        if (cc != null && cc.length > 0) {
+            StringBuilder ccStr = new StringBuilder();
+            for (Address addr : cc) {
+                if (ccStr.length() > 0) ccStr.append(", ");
+                ccStr.append(addr.toString());
+            }
+            dto.setCc(ccStr.toString());
+        }
+
+        Address[] bcc = message.getRecipients(Message.RecipientType.BCC);
+        if (bcc != null && bcc.length > 0) {
+            StringBuilder bccStr = new StringBuilder();
+            for (Address addr : bcc) {
+                if (bccStr.length() > 0) bccStr.append(", ");
+                bccStr.append(addr.toString());
+            }
+            dto.setBcc(bccStr.toString());
         }
         
         dto.setSubject(message.getSubject());

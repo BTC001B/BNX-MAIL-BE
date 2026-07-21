@@ -14,10 +14,17 @@ public class CorsConfig implements WebMvcConfigurer {
                         "https://www.bnxmail.com",
                         "https://bnxmail.com",
                         "https://www.b2auth.com",
-                        "https://b2auth.com"
+                        "https://b2auth.com",
+                        "http://localhost:5173" // for local frontend
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
+    }
+
+    @Override
+    public void addResourceHandlers(org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:uploads/");
     }
 }
