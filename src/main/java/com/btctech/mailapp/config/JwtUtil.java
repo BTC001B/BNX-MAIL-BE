@@ -46,7 +46,7 @@ public class JwtUtil {
         return claimsResolver.apply(claims);
     }
 
-    private Claims extractAllClaims(String token) {
+    public Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
@@ -56,6 +56,10 @@ public class JwtUtil {
 
     private Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
+    }
+
+    public String generateTokenWithClaims(Map<String, Object> claims, String username) {
+        return generateToken(claims, username, jwtExpiration);
     }
 
     public String generateToken(String username) {

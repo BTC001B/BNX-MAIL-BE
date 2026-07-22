@@ -106,7 +106,15 @@ public class AuthController {
 
         // 3. Check for 2FA
         if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
-            String tempToken = jwtUtil.generateToken("2fa_" + request.getEmail());
+            Map<String, Object> claims = new HashMap<>();
+            try {
+                claims.put("ep", sessionService.encrypt(request.getPassword()));
+            } catch (Exception e) {
+                log.error("Failed to encrypt password for 2FA token: {}", e.getMessage());
+                return ResponseEntity.internalServerError().body(ApiResponse.error("Internal server error during login"));
+            }
+            String tempToken = jwtUtil.generateTokenWithClaims(claims, "2fa_" + request.getEmail());
+            
             Map<String, Object> challengeData = new HashMap<>();
             challengeData.put("status", "2FA_REQUIRED");
             challengeData.put("tempToken", tempToken);
@@ -160,8 +168,20 @@ public class AuthController {
             String accessToken = jwtUtil.generateToken(email);
             String refreshToken = authService.createRefreshToken(user, ipAddress, userAgent);
             
-            // Note: In a real app, we should recover the password from the previous step 
-            // or pass it through the tempToken (encrypted). For now, we'll assume it works.
+            try {
+                // Recover the password from the tempToken claims
+                io.jsonwebtoken.Claims claims = jwtUtil.extractAllClaims(tempToken);
+                String encryptedPassword = claims.get("ep", String.class);
+                if (encryptedPassword != null) {
+                    String password = sessionService.decrypt(encryptedPassword);
+                    // Get primary mail account for session
+                    MailAccount mailAccount = mailboxService.getMailAccountByEmail(email);
+                    // Create session (store password linked to accessToken)
+                    sessionService.createSession(user.getId(), mailAccount.getId(), password, accessToken);
+                }
+            } catch (Exception e) {
+                log.error("Failed to recover password from 2FA token: {}", e.getMessage());
+            }
             
             com.btctech.mailapp.dto.LoginResponseData data = authService.buildLoginResponse(user, false, accessToken, refreshToken);
             return ResponseEntity.ok(ApiResponse.success(data, "Login successful"));

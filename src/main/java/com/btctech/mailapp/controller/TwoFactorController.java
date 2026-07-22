@@ -39,7 +39,8 @@ public class TwoFactorController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         String secret = twoFactorService.generateSecret();
-        String qrCodeUrl = twoFactorService.getQrCodeUrl(secret, user.getEmail());
+        String label = (user.getEmail() != null && !user.getEmail().trim().isEmpty()) ? user.getEmail() : user.getUsername();
+        String qrCodeUrl = twoFactorService.getQrCodeUrl(secret, label);
 
         // We don't save yet, just return to frontend for verification
         Map<String, String> response = new HashMap<>();
