@@ -162,7 +162,12 @@ public class AuthController {
         User user = userService.getUserByEmailOrUsername(email);
         if (twoFactorService.verifyCode(user.getTwoFactorSecret(), code)) {
             // Generate real tokens
-            String ipAddress = httpRequest.getRemoteAddr();
+            String ipAddress = httpRequest.getHeader("X-Forwarded-For");
+            if (ipAddress == null || ipAddress.isEmpty()) {
+                ipAddress = httpRequest.getRemoteAddr();
+            } else {
+                ipAddress = ipAddress.split(",")[0].trim();
+            }
             String userAgent = httpRequest.getHeader("User-Agent");
             
             String accessToken = jwtUtil.generateToken(email);
@@ -195,14 +200,23 @@ public class AuthController {
      */
     @GetMapping("/sessions")
     public ResponseEntity<ApiResponse<java.util.List<com.btctech.mailapp.dto.SessionResponse>>> getSessions(
-            @RequestHeader("Authorization") String authHeader) {
+            @RequestHeader("Authorization") String authHeader,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
         
         String token = authHeader.substring(7);
         String email = jwtUtil.extractEmail(token);
         User user = userService.getUserByEmail(email);
 
+        String ipAddress = httpRequest.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            ipAddress = httpRequest.getRemoteAddr();
+        } else {
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+        String userAgent = httpRequest.getHeader("User-Agent");
+
         log.info("Fetching sessions for user: {}", user.getUsername());
-        java.util.List<com.btctech.mailapp.dto.SessionResponse> sessions = authService.getActiveSessions(user, null); // We don't track current access token here yet
+        java.util.List<com.btctech.mailapp.dto.SessionResponse> sessions = authService.getActiveSessions(user, ipAddress, userAgent);
 
         return ResponseEntity.ok(
                 ApiResponse.success(sessions, "Sessions retrieved successfully"));
@@ -371,6 +385,26 @@ public class AuthController {
         return ResponseEntity.ok(
                 ApiResponse.success(sessions, "External sessions retrieved successfully"));
     }
+
+    /**
+     * Remotely revoke a specific external app session
+     */
+    @DeleteMapping("/sessions/external/{sessionId}")
+    public ResponseEntity<ApiResponse<Void>> revokeExternalSession(
+            @PathVariable Long sessionId,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        String token = authHeader.substring(7);
+        String email = jwtUtil.extractEmail(token);
+        User user = userService.getUserByEmail(email);
+
+        log.info("Revoking external session {} for user {}", sessionId, user.getUsername());
+        authService.revokeExternalSession(sessionId, user);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(null, "External app access revoked successfully"));
+    }
+
     /**
      * Recovery Path: Send OTP to email when 2FA device is lost
      */

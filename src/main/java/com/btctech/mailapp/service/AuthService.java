@@ -199,7 +199,7 @@ public class AuthService {
     /**
      * Get all active sessions for current user
      */
-    public java.util.List<com.btctech.mailapp.dto.SessionResponse> getActiveSessions(User user, String currentToken) {
+    public java.util.List<com.btctech.mailapp.dto.SessionResponse> getActiveSessions(User user, String ipAddress, String userAgent) {
         return refreshTokenRepository.findAllByUserAndRevokedFalse(user).stream()
                 .filter(token -> !token.isExpired())
                 .map(token -> com.btctech.mailapp.dto.SessionResponse.builder()
@@ -208,7 +208,10 @@ public class AuthService {
                         .userAgent(token.getUserAgent())
                         .createdAt(token.getCreatedAt())
                         .expiresAt(token.getExpiryDate())
-                        .isCurrentSession(token.getToken().equals(currentToken))
+                        .isCurrentSession(
+                            (ipAddress != null && ipAddress.equals(token.getIpAddress())) &&
+                            (userAgent != null && userAgent.equals(token.getUserAgent()))
+                        )
                         .build())
                 .collect(Collectors.toList());
     }
@@ -452,6 +455,19 @@ public class AuthService {
     }
 
     // Helper functions for masking
+    @Transactional
+    public void revokeExternalSession(Long sessionId, User user) {
+        com.btctech.mailapp.entity.ExternalAppSession session = externalAppSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new MailException("External session not found"));
+
+        if (!session.getUser().getId().equals(user.getId())) {
+            throw new MailException("Unauthorized to revoke this external session");
+        }
+
+        externalAppSessionRepository.delete(session);
+        log.info("✓ External session {} revoked for user {}", sessionId, user.getUsername());
+    }
+
     private String maskEmail(String email) {
         if (email == null || !email.contains("@")) return null;
         String[] parts = email.split("@");
