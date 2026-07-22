@@ -156,6 +156,7 @@ public class UserController {
                 .twoFactorEnabled(user.getTwoFactorEnabled())
                 .biometricsEnabled(settings.getBiometricsEnabled())
                 .language(settings.getLanguage())
+                .casboxAccepted(settings.getCasboxAccepted())
                 .build();
                 
         return ResponseEntity.ok(ApiResponse.success(dto, "Settings retrieved successfully"));
@@ -193,6 +194,7 @@ public class UserController {
                 .twoFactorEnabled(settingsUpdate.getTwoFactorEnabled())
                 .biometricsEnabled(settingsUpdate.getBiometricsEnabled())
                 .language(settingsUpdate.getLanguage())
+                .casboxAccepted(settingsUpdate.getCasboxAccepted())
                 .build();
                 
         com.btctech.mailapp.entity.UserSettings saved = userService.updateSettings(user, update);
@@ -226,6 +228,7 @@ public class UserController {
                 .twoFactorEnabled(saved.getTwoFactorEnabled())
                 .biometricsEnabled(saved.getBiometricsEnabled())
                 .language(saved.getLanguage())
+                .casboxAccepted(saved.getCasboxAccepted())
                 .build();
                 
         return ResponseEntity.ok(ApiResponse.success(responseDto, "Settings updated successfully"));

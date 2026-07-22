@@ -123,6 +123,13 @@ public class UserService {
         if (newSettings.getBiometricsEnabled() != null) existing.setBiometricsEnabled(newSettings.getBiometricsEnabled());
         if (newSettings.getLanguage() != null) existing.setLanguage(newSettings.getLanguage());
         if (newSettings.getReadingPaneMode() != null) existing.setReadingPaneMode(newSettings.getReadingPaneMode());
+        if (newSettings.getCasboxAccepted() != null) {
+            if (existing.getCasboxAccepted() == null) {
+                existing.setCasboxAccepted(new java.util.ArrayList<>());
+            }
+            existing.getCasboxAccepted().clear();
+            existing.getCasboxAccepted().addAll(newSettings.getCasboxAccepted());
+        }
         
         return userSettingsRepository.save(existing);
     }

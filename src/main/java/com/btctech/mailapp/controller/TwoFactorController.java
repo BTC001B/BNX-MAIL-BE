@@ -175,4 +175,27 @@ public class TwoFactorController {
         response.put("message", "2FA enabled successfully");
         return ResponseEntity.ok(response);
     }
+
+    @DeleteMapping("/accounts/{id}")
+    public ResponseEntity<?> deleteAuthenticatorAccount(@AuthenticationPrincipal String principal, @PathVariable Long id) {
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("success", false, "message", "Unauthorized"));
+        }
+        User user = userRepository.findByUsername(principal)
+                .or(() -> userRepository.findByEmail(principal))
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        AuthenticatorAccount acc = authenticatorAccountRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        if (!acc.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).body(Map.of("success", false, "message", "Forbidden"));
+        }
+
+        authenticatorAccountRepository.delete(acc);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        return ResponseEntity.ok(response);
+    }
 }

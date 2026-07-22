@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.List;
 
 @Data
 @Entity
@@ -75,4 +76,11 @@ public class UserSettings {
     // Layout Settings
     @Builder.Default
     private String readingPaneMode = "no_split";
+
+    // Casbox Settings
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_casbox_accepted", joinColumns = @JoinColumn(name = "user_settings_id"))
+    @Column(name = "email")
+    @Builder.Default
+    private List<String> casboxAccepted = new java.util.ArrayList<>();
 }
