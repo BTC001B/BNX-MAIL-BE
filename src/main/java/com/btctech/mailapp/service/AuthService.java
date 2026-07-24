@@ -107,7 +107,7 @@ public class AuthService {
     /**
      * Generate username suggestions based on firstName, lastName and dob
      */
-    public List<String> generateUsernameSuggestions(String firstName, String lastName, String dob) {
+    public List<String> generateUsernameSuggestions(String firstName, String lastName, String dob, String mode) {
         List<String> suggestions = new ArrayList<>();
         if (firstName == null || firstName.trim().isEmpty()) {
             return suggestions;
@@ -151,6 +151,12 @@ public class AuthService {
             templates.add(fn.substring(0, 1) + ln + yearStr); // e.g. skumar89
         }
 
+        if ("PERSONAL".equalsIgnoreCase(mode) || "CHILD".equalsIgnoreCase(mode)) {
+            templates = templates.stream()
+                .map(this::enforceUsernameRules)
+                .collect(Collectors.toList());
+        }
+
         // Filter and check database uniqueness
         for (String candidate : templates) {
             if (suggestions.size() >= 3) break;
@@ -163,6 +169,9 @@ public class AuthService {
         int suffix = 1;
         while (suggestions.size() < 3) {
             String candidate = fn + yearStr + suffix;
+            if ("PERSONAL".equalsIgnoreCase(mode) || "CHILD".equalsIgnoreCase(mode)) {
+                candidate = enforceUsernameRules(candidate);
+            }
             if (isUsernameAvailable(candidate)) {
                 suggestions.add(candidate);
             }
@@ -170,6 +179,15 @@ public class AuthService {
         }
 
         return suggestions;
+    }
+
+    private String enforceUsernameRules(String base) {
+        String res = base;
+        java.util.Random rand = new java.util.Random();
+        while (res.length() < 10 || res.chars().filter(Character::isDigit).count() < 3) {
+            res += rand.nextInt(10);
+        }
+        return res;
     }
 
     private boolean isUsernameAvailable(String username) {

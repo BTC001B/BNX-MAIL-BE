@@ -41,6 +41,17 @@ public class AuthController {
 
         log.info("Registration request for username: {}", request.getUsername());
 
+        if ("PERSONAL".equalsIgnoreCase(request.getMode()) || "CHILD".equalsIgnoreCase(request.getMode())) {
+            String username = request.getUsername();
+            if (username == null || username.length() < 10) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Email handle must contain at least 10 characters."));
+            }
+            long digits = username.chars().filter(Character::isDigit).count();
+            if (digits < 3) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Email handle must contain at least 3 numbers."));
+            }
+        }
+
         // Create user
         User user = userService.createUser(request);
 
@@ -69,9 +80,10 @@ public class AuthController {
     public ResponseEntity<ApiResponse<List<String>>> getUsernameSuggestions(
             @RequestParam String firstName,
             @RequestParam String lastName,
-            @RequestParam String dob) {
+            @RequestParam String dob,
+            @RequestParam(required = false, defaultValue = "") String mode) {
         log.info("Generating username suggestions for {} {}, dob: {}", firstName, lastName, dob);
-        List<String> suggestions = authService.generateUsernameSuggestions(firstName, lastName, dob);
+        List<String> suggestions = authService.generateUsernameSuggestions(firstName, lastName, dob, mode);
         return ResponseEntity.ok(ApiResponse.success(suggestions, "Suggestions generated successfully"));
     }
 
