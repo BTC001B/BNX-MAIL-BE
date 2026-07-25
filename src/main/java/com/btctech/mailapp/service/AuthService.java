@@ -182,12 +182,31 @@ public class AuthService {
     }
 
     private String enforceUsernameRules(String base) {
-        String res = base;
-        java.util.Random rand = new java.util.Random();
-        while (res.length() < 10 || res.chars().filter(Character::isDigit).count() < 3) {
-            res += rand.nextInt(10);
+        StringBuilder letters = new StringBuilder();
+        StringBuilder digits = new StringBuilder();
+        
+        for (char c : base.toCharArray()) {
+            if (Character.isLetter(c)) letters.append(c);
+            else if (Character.isDigit(c)) digits.append(c);
         }
-        return res;
+        
+        java.util.Random rand = new java.util.Random();
+        
+        while (letters.length() < 7) {
+            letters.append((char) ('a' + rand.nextInt(26)));
+        }
+        if (letters.length() > 7) {
+            letters.setLength(7);
+        }
+        
+        while (digits.length() < 3) {
+            digits.append(rand.nextInt(10));
+        }
+        if (digits.length() > 3) {
+            digits.setLength(3);
+        }
+        
+        return letters.toString() + digits.toString();
     }
 
     private boolean isUsernameAvailable(String username) {

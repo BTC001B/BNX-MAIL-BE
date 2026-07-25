@@ -43,12 +43,13 @@ public class AuthController {
 
         if ("PERSONAL".equalsIgnoreCase(request.getMode()) || "CHILD".equalsIgnoreCase(request.getMode())) {
             String username = request.getUsername();
-            if (username == null || username.length() < 10) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("Email handle must contain at least 10 characters."));
+            if (username == null || username.length() != 10) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Email handle must be exactly 10 characters long."));
             }
             long digits = username.chars().filter(Character::isDigit).count();
-            if (digits < 3) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("Email handle must contain at least 3 numbers."));
+            long letters = username.chars().filter(Character::isLetter).count();
+            if (digits != 3 || letters != 7) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Email handle must contain exactly 7 letters and 3 numbers."));
             }
         }
 

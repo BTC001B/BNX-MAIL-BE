@@ -22,4 +22,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.setApplicationDestinationPrefixes("/app");
         registry.setUserDestinationPrefix("/user");
     }
+
+    @Override
+    public void configureWebSocketTransport(org.springframework.web.socket.config.annotation.WebSocketTransportRegistration registration) {
+        registration.setMessageSizeLimit(50 * 1024 * 1024); // 50MB
+        registration.setSendBufferSizeLimit(50 * 1024 * 1024); // 50MB
+        registration.setSendTimeLimit(20000); // 20s
+    }
 }
