@@ -82,6 +82,36 @@ public class MailReceiveController {
         }
     }
 
+    @GetMapping("/analytics")
+    public ResponseEntity<ApiResponse<com.btctech.mailapp.dto.AnalyticsDTO>> getAnalytics(
+            @RequestParam(required = false) String timezone,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            log.info("Get analytics request from: {} with timezone: {}", email, timezone);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            com.btctech.mailapp.dto.AnalyticsDTO analytics = mailReceiveService.getAnalytics(email, password, timezone);
+
+            log.info("✓ Fetched analytics for {}", email);
+            return ResponseEntity.ok(ApiResponse.success(analytics, "Analytics fetched successfully"));
+
+        } catch (Throwable e) {
+            String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
+            log.error("CRITICAL error fetching analytics for {}: {}", userEmail, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to fetch analytics: " + e.getMessage()));
+        }
+    }
+
     /**
      * Get emails by category (Social, Promotions, Updates, etc.)
      */

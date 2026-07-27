@@ -1461,4 +1461,120 @@ public class MailReceiveService {
                 .map(String::toLowerCase)
                 .toList();
     }
+
+    public com.btctech.mailapp.dto.AnalyticsDTO getAnalytics(String email, String password, String timezoneId) {
+        log.info("Fetching analytics for: {} with timezone: {}", email, timezoneId);
+        Store store = null;
+        com.btctech.mailapp.dto.AnalyticsDTO analytics = new com.btctech.mailapp.dto.AnalyticsDTO();
+        
+        java.util.Map<String, Integer> folderCounts = new java.util.HashMap<>();
+        java.util.Map<String, Integer> receivedByDate = new java.util.HashMap<>();
+        java.util.Map<String, Integer> sentByDate = new java.util.HashMap<>();
+        java.util.Map<String, Integer> receivedByMonth = new java.util.HashMap<>();
+        java.util.Map<String, Integer> sentByMonth = new java.util.HashMap<>();
+        java.util.Map<String, Integer> topSenders = new java.util.HashMap<>();
+        java.util.Map<String, Integer> topReceivers = new java.util.HashMap<>();
+
+        try {
+            store = connect(email, password);
+            String[] commonFolders = {"INBOX", resolveSentFolderName(store), resolveDraftsFolderName(store), resolveSpamFolderName(store), resolveTrashFolderName(store), resolveArchiveFolderName(store)};
+            String[] folderLabels = {"INBOX", "Sent", "Drafts", "Spam", "Trash", "Archive"};
+
+            for (int i = 0; i < commonFolders.length; i++) {
+                Folder f = null;
+                try {
+                    f = store.getFolder(commonFolders[i]);
+                    if (f.exists()) {
+                        folderCounts.put(folderLabels[i], f.getMessageCount());
+                        
+                        // Process timeline/senders for Inbox and Sent (limit to last 1000 for performance)
+                        if (folderLabels[i].equals("INBOX") || folderLabels[i].equals("Sent")) {
+                            f.open(Folder.READ_ONLY);
+                            int count = f.getMessageCount();
+                            int start = Math.max(1, count - 1000 + 1);
+                            if (count > 0) {
+                                Message[] msgs = f.getMessages(start, count);
+                                FetchProfile fp = new FetchProfile();
+                                fp.add(FetchProfile.Item.ENVELOPE);
+                                f.fetch(msgs, fp);
+
+                                java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                                java.text.SimpleDateFormat monthFormat = new java.text.SimpleDateFormat("yyyy-MM");
+                                
+                                if (timezoneId != null && !timezoneId.isEmpty()) {
+                                    try {
+                                        java.util.TimeZone tz = java.util.TimeZone.getTimeZone(timezoneId);
+                                        dateFormat.setTimeZone(tz);
+                                        monthFormat.setTimeZone(tz);
+                                    } catch (Exception tzEx) {
+                                        log.warn("Invalid timezone: {}, defaulting to system timezone", timezoneId);
+                                    }
+                                }
+
+                                for (Message msg : msgs) {
+                                    try {
+                                        java.util.Date receivedDate = msg.getReceivedDate();
+                                        if (receivedDate == null) receivedDate = msg.getSentDate();
+                                        if (receivedDate == null) receivedDate = new java.util.Date(); // Robust fallback so message isn't skipped
+                                        
+                                        if (receivedDate != null) {
+                                            String dStr = dateFormat.format(receivedDate);
+                                            String mStr = monthFormat.format(receivedDate);
+
+                                            if (folderLabels[i].equals("INBOX")) {
+                                                receivedByDate.put(dStr, receivedByDate.getOrDefault(dStr, 0) + 1);
+                                                receivedByMonth.put(mStr, receivedByMonth.getOrDefault(mStr, 0) + 1);
+                                                
+                                                Address[] froms = msg.getFrom();
+                                                if (froms != null && froms.length > 0) {
+                                                    String fromEmail = extractEmailAddress(froms[0].toString());
+                                                    if (fromEmail != null) {
+                                                        topSenders.put(fromEmail, topSenders.getOrDefault(fromEmail, 0) + 1);
+                                                    }
+                                                }
+                                            } else {
+                                                sentByDate.put(dStr, sentByDate.getOrDefault(dStr, 0) + 1);
+                                                sentByMonth.put(mStr, sentByMonth.getOrDefault(mStr, 0) + 1);
+                                                
+                                                Address[] tos = msg.getRecipients(Message.RecipientType.TO);
+                                                if (tos != null && tos.length > 0) {
+                                                    for (Address to : tos) {
+                                                        String toEmail = extractEmailAddress(to.toString());
+                                                        if (toEmail != null) {
+                                                            topReceivers.put(toEmail, topReceivers.getOrDefault(toEmail, 0) + 1);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } catch (Exception e) {
+                                        // Ignore individual message parse errors
+                                    }
+                                }
+                            }
+                            f.close(false);
+                        }
+                    }
+                } catch (Exception ex) {
+                    log.warn("Analytics: failed to process folder {}", commonFolders[i], ex);
+                }
+            }
+
+            analytics.setFolderCounts(folderCounts);
+            analytics.setReceivedByDate(receivedByDate);
+            analytics.setSentByDate(sentByDate);
+            analytics.setReceivedByMonth(receivedByMonth);
+            analytics.setSentByMonth(sentByMonth);
+            analytics.setTopSenders(topSenders);
+            analytics.setTopReceivers(topReceivers);
+
+        } catch (Exception e) {
+            log.error("Failed to fetch analytics for {}: {}", email, e.getMessage(), e);
+            throw new MailException("Failed to fetch analytics: " + e.getMessage());
+        } finally {
+            cleanup(store, null);
+        }
+        
+        return analytics;
+    }
 }

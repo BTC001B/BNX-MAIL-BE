@@ -112,6 +112,8 @@ public class MailSendService {
                 }
             }
             
+            message.setSentDate(new java.util.Date());
+            
             log.info("Sending email to SMTP server...");
             Transport.send(message);
             
