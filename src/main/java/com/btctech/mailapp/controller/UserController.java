@@ -75,6 +75,13 @@ public class UserController {
         data.put("bio", user.getBio());
         data.put("accountType", user.getAccountType());
         data.put("isPrimary", primaryAccount.isPresent() && primaryAccount.get().getIsPrimary());
+        data.put("role", user.getRole());
+        data.put("active", user.getActive());
+        data.put("approved", user.getApproved());
+        data.put("createdAt", user.getCreatedAt());
+        data.put("updatedAt", user.getUpdatedAt());
+        data.put("lastLogin", user.getLastLogin());
+        data.put("twoFactorEnabled", user.getTwoFactorEnabled());
         boolean onboarded = true;
         if (user.getAccountType() == com.btctech.mailapp.entity.AccountType.BUSINESS) {
             onboarded = businessProfileRepository.findByUserId(user.getId())
