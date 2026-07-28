@@ -2,6 +2,7 @@ package com.btctech.mailapp.service;
 
 import com.btctech.mailapp.entity.AccountType;
 import com.btctech.mailapp.dto.RegisterRequest;
+import com.btctech.mailapp.dto.UserProfileDTO;
 import com.btctech.mailapp.entity.User;
 import com.btctech.mailapp.entity.UserSettings;
 import com.btctech.mailapp.exception.MailException;
@@ -355,5 +356,38 @@ public class UserService {
         log.info("✓ CHILD account approved: {} by parent: {}", savedChild.getUsername(), parent.getUsername());
         
         return savedChild;
+    }
+
+    /**
+     * Update user profile information (Google-like)
+     */
+    @Transactional
+    public User updateProfile(User user, UserProfileDTO profileDto) {
+        if (profileDto.getFirstName() != null) user.setFirstName(profileDto.getFirstName());
+        if (profileDto.getLastName() != null) user.setLastName(profileDto.getLastName());
+        if (profileDto.getNickname() != null) user.setNickname(profileDto.getNickname());
+        if (profileDto.getDisplayName() != null) user.setDisplayName(profileDto.getDisplayName());
+        if (profileDto.getGender() != null) user.setGender(profileDto.getGender());
+        if (profileDto.getDob() != null && !profileDto.getDob().trim().isEmpty()) {
+            try {
+                user.setDob(LocalDate.parse(profileDto.getDob()));
+            } catch (Exception e) {
+                log.warn("Invalid dob format: {}", profileDto.getDob());
+            }
+        }
+        if (profileDto.getPhoneNumber() != null) {
+            user.setPhoneNumber(profileDto.getPhoneNumber());
+            // Sync with UserSettings
+            UserSettings settings = getSettings(user);
+            settings.setPhoneNumber(profileDto.getPhoneNumber());
+            userSettingsRepository.save(settings);
+        }
+        if (profileDto.getRecoveryEmail() != null) user.setRecoveryEmail(profileDto.getRecoveryEmail());
+        if (profileDto.getHomeAddress() != null) user.setHomeAddress(profileDto.getHomeAddress());
+        if (profileDto.getWorkAddress() != null) user.setWorkAddress(profileDto.getWorkAddress());
+        if (profileDto.getOccupation() != null) user.setOccupation(profileDto.getOccupation());
+        if (profileDto.getBio() != null) user.setBio(profileDto.getBio());
+        
+        return userRepository.save(user);
     }
 }

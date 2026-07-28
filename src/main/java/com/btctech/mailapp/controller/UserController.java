@@ -66,6 +66,13 @@ public class UserController {
         data.put("profilePictureUrl", user.getProfilePicture() != null ? "/api/users/profile-picture/" + user.getUsername() : null);
         data.put("phoneNumber", user.getPhoneNumber());
         data.put("dob", user.getDob());
+        data.put("nickname", user.getNickname());
+        data.put("displayName", user.getDisplayName());
+        data.put("gender", user.getGender());
+        data.put("homeAddress", user.getHomeAddress());
+        data.put("workAddress", user.getWorkAddress());
+        data.put("occupation", user.getOccupation());
+        data.put("bio", user.getBio());
         data.put("accountType", user.getAccountType());
         data.put("isPrimary", primaryAccount.isPresent() && primaryAccount.get().getIsPrimary());
         boolean onboarded = true;
@@ -284,5 +291,46 @@ public class UserController {
         userService.updateRecoveryInfo(user, recoveryInfo.getRecoveryEmail(), recoveryInfo.getPhoneNumber());
         
         return ResponseEntity.ok(ApiResponse.success(null, "Recovery info updated successfully"));
+    }
+
+    @PatchMapping("/profile")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> updateProfile(
+            HttpServletRequest request,
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody com.btctech.mailapp.dto.UserProfileDTO profileDto) {
+        
+        String token = authHeader.replace("Bearer ", "");
+        String identifier = jwtUtil.extractEmail(token);
+        User user = userService.getUserByEmailOrUsername(identifier);
+        
+        User updatedUser = userService.updateProfile(user, profileDto);
+        
+        // Log activity
+        userService.logActivity(updatedUser, "Profile Updated", "Updated personal info and contact details", 
+            request.getHeader("X-Forwarded-For"), request.getHeader("X-Device-Name"));
+        
+        // Return updated data
+        String fullName = (updatedUser.getFirstName() != null ? updatedUser.getFirstName() : "") + 
+                         (updatedUser.getLastName() != null ? " " + updatedUser.getLastName() : "");
+        fullName = fullName.trim();
+        if (fullName.isEmpty()) fullName = updatedUser.getUsername();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", updatedUser.getId());
+        data.put("firstName", updatedUser.getFirstName());
+        data.put("lastName", updatedUser.getLastName());
+        data.put("fullName", fullName);
+        data.put("recoveryEmail", updatedUser.getRecoveryEmail());
+        data.put("phoneNumber", updatedUser.getPhoneNumber());
+        data.put("dob", updatedUser.getDob());
+        data.put("nickname", updatedUser.getNickname());
+        data.put("displayName", updatedUser.getDisplayName());
+        data.put("gender", updatedUser.getGender());
+        data.put("homeAddress", updatedUser.getHomeAddress());
+        data.put("workAddress", updatedUser.getWorkAddress());
+        data.put("occupation", updatedUser.getOccupation());
+        data.put("bio", updatedUser.getBio());
+
+        return ResponseEntity.ok(ApiResponse.success(data, "Profile updated successfully"));
     }
 }

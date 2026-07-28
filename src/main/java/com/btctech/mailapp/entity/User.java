@@ -82,6 +82,27 @@ public class User {
     @Lob
     @Column(name = "profile_picture", columnDefinition = "LONGTEXT")
     private String profilePicture;
+
+    @Column(name = "nickname", length = 100)
+    private String nickname;
+
+    @Column(name = "display_name", length = 150)
+    private String displayName;
+
+    @Column(name = "gender", length = 50)
+    private String gender;
+
+    @Column(name = "home_address", length = 500)
+    private String homeAddress;
+
+    @Column(name = "work_address", length = 500)
+    private String workAddress;
+
+    @Column(name = "occupation", length = 200)
+    private String occupation;
+
+    @Column(name = "bio", length = 1000)
+    private String bio;
     
     @PreUpdate
     public void preUpdate() {

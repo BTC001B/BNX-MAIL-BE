@@ -1212,52 +1212,139 @@ public class MailReceiveService {
                 subject.contains("INHERITANCE") || subject.contains("VIAGRA") || 
                 subject.contains("CASINO") || subject.contains("JACKPOT") ||
                 subject.contains("URGENT ACTION REQUIRED") || subject.contains("ACCOUNT SUSPENDED") ||
-                subject.contains("YOU'VE WON")) {
+                subject.contains("YOU'VE WON") || subject.contains("CONGRATULATIONS") ||
+                subject.contains("MILLION DOLLARS") || subject.contains("DEAR WINNER") ||
+                subject.contains("DONATION") || subject.contains("FUND TRANSFERS") ||
+                subject.contains("LOAN OFFER") || subject.contains("FAST CASH") ||
+                subject.contains("EARN MONEY") || subject.contains("WORK FROM HOME") ||
+                subject.contains("BITCOIN") || subject.contains("CRYPTO") ||
+                subject.contains("INVESTMENT OPPORTUNITY") || subject.contains("MAKE MONEY") ||
+                subject.contains("PHARMACY") || subject.contains("CIALIS") ||
+                subject.contains("MEDS ONLINE") || subject.contains("DIET PILLS") ||
+                subject.contains("CHEAP VIAGRA") || subject.contains("ADULT SINGLES") ||
+                subject.contains("MEET GIRLS") || subject.contains("DATING") ||
+                subject.contains("CLICK HERE TO CLAIM") || subject.contains("ACT NOW") ||
+                fromDomain.endsWith(".xyz") || fromDomain.endsWith(".top") || 
+                fromDomain.endsWith(".click") || fromDomain.endsWith(".link") ||
+                fromDomain.contains("lottery") || fromDomain.contains("casino") ||
+                fromDomain.contains("jackpot") || fromDomain.contains("viagra") ||
+                fromDomain.contains("win-cash") || fromDomain.contains("make-money") ||
+                fromLocal.contains("lottery") || fromLocal.contains("winner") ||
+                fromLocal.contains("jackpot") || fromLocal.contains("bonus") ||
+                fromLocal.contains("casino") || fromLocal.contains("viagra") ||
+                fromLocal.contains("cialis") || fromLocal.contains("pharmacy") ||
+                fromLocal.contains("fast-cash") || fromLocal.contains("easy-money") ||
+                fromLocal.contains("crypto-earn") || fromLocal.contains("bitcoin")) {
                 return "SPAM";
             }
 
-            // 2. SOCIAL Check
+            // 2. JOB Check
+            if (fromDomain.contains("indeed.com") || fromDomain.contains("glassdoor.com") || 
+                fromDomain.contains("naukri.com") || fromDomain.contains("monster.com") || 
+                fromDomain.contains("ziprecruiter.com") || fromDomain.contains("upwork.com") || 
+                fromDomain.contains("fiverr.com") || fromDomain.contains("freelancer.com") ||
+                fromDomain.contains("careerbuilder.com") || fromDomain.contains("simplyhired.com") ||
+                fromDomain.contains("toptal.com") || fromDomain.contains("workable.com") ||
+                fromDomain.contains("greenhouse.io") || fromDomain.contains("lever.co") ||
+                fromLocal.contains("careers") || fromLocal.contains("jobs") || 
+                fromLocal.contains("hiring") || fromLocal.contains("recruitment") || 
+                fromLocal.contains("recruiter") || fromLocal.equals("hr") ||
+                fromLocal.contains("talent") || fromLocal.contains("apply") ||
+                fromLocal.contains("internship") || fromLocal.contains("employment") ||
+                subject.contains("JOB") || subject.contains("HIRING") || 
+                subject.contains("VACANCY") || subject.contains("CAREER") || 
+                subject.contains("RECRUIT") || subject.contains("RESUME") || 
+                subject.contains("INTERVIEW") || subject.contains("APPLICATION") ||
+                subject.contains("JOB OFFER") || subject.contains("OFFER LETTER") ||
+                subject.contains("EMPLOYMENT") || subject.contains("INTERNSHIP") ||
+                subject.contains("JOIN OUR TEAM") || subject.contains("ONBOARDING") ||
+                subject.contains("CONTRACTOR") || subject.contains("SALARY") ||
+                subject.contains("COMPENSATION") || subject.contains("PORTFOLIO") ||
+                subject.contains("SCREENING") || subject.contains("ASSESSMENT")) {
+                return "JOB";
+            }
+
+            // 3. SOCIAL Check
             if (fromDomain.contains("facebook.com") || fromDomain.contains("instagram.com") || 
                 fromDomain.contains("linkedin.com") || fromDomain.contains("twitter.com") || 
                 fromDomain.contains("t.co") || fromDomain.contains("tiktok.com") || 
                 fromDomain.contains("pinterest.com") || fromDomain.contains("tumblr.com") ||
-                fromLocal.equals("notification") && fromDomain.contains("social")) {
+                fromDomain.contains("reddit.com") || fromDomain.contains("youtube.com") ||
+                fromDomain.contains("snapchat.com") || fromDomain.contains("discord.com") ||
+                fromDomain.contains("whatsapp.com") || fromDomain.contains("slack.com") ||
+                fromDomain.contains("medium.com") || fromDomain.contains("quora.com") ||
+                fromDomain.contains("meetup.com") || fromDomain.contains("facebookmail.com") ||
+                fromDomain.contains("x.com") ||
+                fromLocal.contains("notification") || fromLocal.contains("social") ||
+                fromLocal.contains("community") || fromLocal.contains("invite") ||
+                fromLocal.contains("friend") || fromLocal.contains("follow") ||
+                fromLocal.contains("mention") || fromLocal.contains("comment") ||
+                subject.contains("SOCIAL") || subject.contains("FRIEND REQUEST") || 
+                subject.contains("NEW FOLLOWER") || subject.contains("MENTIONED YOU") || 
+                subject.contains("COMMENTED ON") || subject.contains("INVITATION TO JOIN") || 
+                subject.contains("NEW MESSAGE FROM") || subject.contains("REACTION") || 
+                subject.contains("RETWEET") || subject.contains("SUBSCRIBED") ||
+                subject.contains("CONNECT REQUEST") || subject.contains("ADDED YOU")) {
                 return "SOCIAL";
             }
 
-            // 3. PROMOTIONS Check
-            // Strongly relies on bulk mailing headers or marketing sender prefixes
+            // 4. PROMOTIONS Check
             if (hasUnsubscribe || isBulk || 
+                fromDomain.contains("groupon.com") || fromDomain.contains("coupon.com") ||
+                fromDomain.contains("retailmenot.com") || fromDomain.contains("slickdeals.net") ||
+                fromDomain.contains("mailchimp.com") || fromDomain.contains("sendgrid.com") ||
+                fromDomain.contains("hubspot.com") || fromDomain.contains("constantcontact.com") ||
                 fromLocal.contains("newsletter") || fromLocal.contains("marketing") || 
                 fromLocal.contains("offers") || fromLocal.contains("sales") ||
+                fromLocal.contains("promo") || fromLocal.contains("deals") ||
+                fromLocal.contains("coupon") || fromLocal.contains("shop") ||
+                fromLocal.contains("store") ||
                 subject.contains("SALE") || subject.contains("OFFER") || 
                 subject.contains("DISCOUNT") || subject.contains("DEAL") || 
                 subject.contains("PROMOTION") || subject.contains("LIMITED TIME") ||
-                subject.contains("% OFF")) {
+                subject.contains("% OFF") || subject.contains("SAVE") ||
+                subject.contains("COUPON") || subject.contains("FREE SHIPPING") ||
+                subject.contains("BLACK FRIDAY") || subject.contains("CYBER MONDAY") ||
+                subject.contains("BUY ONE GET ONE") || subject.contains("BOGO") ||
+                subject.contains("CLEARANCE") || subject.contains("GIFT") ||
+                subject.contains("VOUCHER") || subject.contains("BESTSELLERS") ||
+                subject.contains("CHECK OUT") || subject.contains("SPECIAL VALUE") ||
+                subject.contains("PROMO") || subject.contains("PRICE DROP") ||
+                subject.contains("EXCLUSIVE")) {
                 return "PROMOTIONS";
             }
 
-            // 4. PURCHASES Check
-            // Must have transaction keywords, usually from automated addresses
+            // 5. PURCHASES Check
             if (subject.contains("RECEIPT") || subject.contains("INVOICE") || 
                 subject.contains("ORDER") || subject.contains("YOUR ORDER") || 
                 subject.contains("PAYMENT") || subject.contains("SHIPPED") ||
                 subject.contains("AMAZON") || subject.contains("FLIPKART") ||
-                subject.contains("BILL") || subject.contains("DELIVERY")) {
+                subject.contains("BILL") || subject.contains("DELIVERY") ||
+                subject.contains("TRANSACTION") || subject.contains("CONFIRMATION OF ORDER") ||
+                subject.contains("PURCHASE") || subject.contains("TRACKING")) {
                 return "PURCHASES";
             }
 
-            // 5. UPDATES Check
-            // Automated system alerts, password resets, verification codes
+            // 6. UPDATES Check
             if (isAutoSubmitted || 
+                fromDomain.contains("github.com") || fromDomain.contains("gitlab.com") ||
+                fromDomain.contains("bitbucket.org") || fromDomain.contains("jira.com") ||
+                fromDomain.contains("confluence.com") || fromDomain.contains("trello.com") ||
+                fromDomain.contains("zoom.us") ||
                 fromLocal.equals("no-reply") || fromLocal.equals("noreply") || 
                 fromLocal.equals("donotreply") || fromLocal.equals("support") || 
                 fromLocal.equals("alerts") || fromLocal.equals("system") ||
+                fromLocal.equals("info") || fromLocal.equals("service") ||
+                fromLocal.equals("admin") || fromLocal.equals("billing") ||
                 subject.contains("OTP") || subject.contains("VERIFICATION") || 
                 subject.contains("PASSWORD") || subject.contains("ALERT") || 
                 subject.contains("SECURITY") || subject.contains("ACCOUNT") || 
                 subject.contains("LOGIN") || subject.contains("UNDELIVERED") || 
                 subject.contains("RETURNED TO SENDER") ||
+                subject.contains("STATEMENT") || subject.contains("CONFIRMATION") ||
+                subject.contains("NOTIFICATION") || subject.contains("UPDATE") ||
+                subject.contains("YOUR ACCOUNT") || subject.contains("ACTIVATION") ||
+                subject.contains("RENEWAL") || subject.contains("VERIFY YOUR") ||
                 from.contains("mailer-daemon") || from.contains("postmaster")) {
                 return "UPDATES";
             }
