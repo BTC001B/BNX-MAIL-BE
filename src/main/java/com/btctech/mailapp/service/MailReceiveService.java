@@ -13,6 +13,7 @@ import com.btctech.mailapp.repository.BlockedSenderRepository;
 
 
 import com.btctech.mailapp.dto.EmailDTO;
+import com.btctech.mailapp.dto.StorageQuotaDTO;
 import com.btctech.mailapp.exception.MailException;
 import jakarta.mail.*;
 import jakarta.mail.internet.InternetAddress;
@@ -154,6 +155,82 @@ public class MailReceiveService {
 
     public List<EmailDTO> getDrafts(String email, String password, int limit) {
         return getEmailsFromFolder(email, password, "Drafts", limit);
+    }
+
+    /**
+     * Get user storage quota directly via doveadm command or IMAP quota
+     */
+    public StorageQuotaDTO getStorageQuota(String email, String password) {
+        log.info("Fetching storage quota for user: {}", email);
+        long usedBytes = 0;
+        long limitBytes = 5368709120L; // 5 GB default
+
+        try {
+            // First try executing doveadm command since backend runs on the same mail server
+            String[] cmd = {"doveadm", "quota", "get", "-u", email};
+            Process process = Runtime.getRuntime().exec(cmd);
+            java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(process.getInputStream()));
+            String line;
+            boolean foundStorage = false;
+            while ((line = reader.readLine()) != null) {
+                // Example line: User quota STORAGE   689 5242880                                                                                     0
+                if (line.contains("STORAGE")) {
+                    String[] parts = line.trim().split("\\s+");
+                    // parts: [User, quota, STORAGE, 689, 5242880, 0]
+                    for (int i = 0; i < parts.length; i++) {
+                        if ("STORAGE".equalsIgnoreCase(parts[i]) && i + 2 < parts.length) {
+                            usedBytes = Long.parseLong(parts[i+1]) * 1024L; // doveadm returns KB
+                            
+                            // If limit is not "-", parse it
+                            if (!"-".equals(parts[i+2])) {
+                                limitBytes = Long.parseLong(parts[i+2]) * 1024L;
+                            }
+                            foundStorage = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            process.waitFor();
+
+            if (!foundStorage) {
+                // Fallback to IMAP QUOTA if doveadm fails or is not available
+                Store store = null;
+                try {
+                    store = connect(email, password);
+                    if (store instanceof com.sun.mail.imap.IMAPStore) {
+                        com.sun.mail.imap.IMAPStore imapStore = (com.sun.mail.imap.IMAPStore) store;
+                        Quota[] quotas = imapStore.getQuota("");
+                        if (quotas != null) {
+                            for (Quota q : quotas) {
+                                if (q.resources != null) {
+                                    for (Quota.Resource r : q.resources) {
+                                        if ("STORAGE".equalsIgnoreCase(r.name)) {
+                                            usedBytes = r.usage * 1024L;
+                                            limitBytes = r.limit * 1024L;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } finally {
+                    if (store != null) {
+                        try { store.close(); } catch (Exception ignored) {}
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to fetch storage quota for {}: {}", email, e.getMessage());
+        }
+
+        double percentage = (limitBytes > 0) ? ((double) usedBytes / limitBytes) * 100.0 : 0;
+        return StorageQuotaDTO.builder()
+                .email(email)
+                .storageUsed(usedBytes)
+                .storageLimit(limitBytes)
+                .storagePercentage(percentage)
+                .build();
     }
 
     public void saveDraftToIMAP(String email, String password, SendMailRequest request) {

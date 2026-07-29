@@ -113,6 +113,35 @@ public class MailReceiveController {
     }
 
     /**
+     * Get storage quota
+     */
+    @GetMapping("/storage-quota")
+    public ResponseEntity<ApiResponse<com.btctech.mailapp.dto.StorageQuotaDTO>> getStorageQuota(
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+        try {
+            String email = authentication.getName();
+            log.info("Get storage quota request from: {}", email);
+
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            com.btctech.mailapp.dto.StorageQuotaDTO quota = mailReceiveService.getStorageQuota(email, password);
+            return ResponseEntity.ok(ApiResponse.success(quota, "Storage quota fetched successfully"));
+
+        } catch (Throwable e) {
+            log.error("Error fetching storage quota: {}", e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to fetch storage quota: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Get emails by category (Social, Promotions, Updates, etc.)
      */
     @GetMapping("/category/{category}")
