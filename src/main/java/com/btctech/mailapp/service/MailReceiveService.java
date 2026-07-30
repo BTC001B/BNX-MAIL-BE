@@ -1188,6 +1188,24 @@ public class MailReceiveService {
             }
             dto.setBcc(bccStr.toString());
         }
+
+        // If the user's email is not in To, Cc, or From, assume they were BCC'd
+        // Note: We only add it if it's not already in the BCC string
+        if (userEmail != null && !userEmail.trim().isEmpty()) {
+            String lowerEmail = userEmail.toLowerCase().trim();
+            boolean inTo = dto.getTo() != null && dto.getTo().toLowerCase().contains(lowerEmail);
+            boolean inCc = dto.getCc() != null && dto.getCc().toLowerCase().contains(lowerEmail);
+            boolean inFrom = dto.getFrom() != null && dto.getFrom().toLowerCase().contains(lowerEmail);
+            
+            if (!inTo && !inCc && !inFrom) {
+                String currentBcc = dto.getBcc();
+                if (currentBcc == null || currentBcc.trim().isEmpty()) {
+                    dto.setBcc(userEmail);
+                } else if (!currentBcc.toLowerCase().contains(lowerEmail)) {
+                    dto.setBcc(currentBcc + ", " + userEmail);
+                }
+            }
+        }
         
         dto.setSubject(message.getSubject());
         dto.setSentDate(message.getSentDate());
