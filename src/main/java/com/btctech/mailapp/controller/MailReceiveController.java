@@ -28,6 +28,7 @@ public class MailReceiveController {
      */
     @GetMapping("/inbox")
     public ResponseEntity<ApiResponse<InboxResponse>> getInbox(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(required = false) String category,
             @RequestHeader("Authorization") String authHeader,
@@ -47,8 +48,9 @@ public class MailReceiveController {
             }
 
             // Fetch emails
-            List<EmailDTO> emails = mailReceiveService.getInbox(email, password, limit);
-            if (emails == null) emails = new java.util.ArrayList<>();
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getInbox(email, password, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             // Filter by category if provided
             if (category != null && !category.isEmpty()) {
@@ -64,7 +66,7 @@ public class MailReceiveController {
             // Build response
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(unreadCount)
                     .emails(emails)
                     .build();
@@ -147,6 +149,7 @@ public class MailReceiveController {
     @GetMapping("/category/{category}")
     public ResponseEntity<ApiResponse<InboxResponse>> getEmailsByCategory(
             @PathVariable String category,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication) {
@@ -163,11 +166,13 @@ public class MailReceiveController {
                         .body(ApiResponse.error("Session expired. Please login again."));
             }
 
-            List<EmailDTO> emails = mailReceiveService.getEmailsByCategory(email, password, category, limit);
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getEmailsByCategory(email, password, category, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(0) // Logic for per-category unread count can be added later
                     .emails(emails)
                     .build();
@@ -187,6 +192,7 @@ public class MailReceiveController {
      */
     @GetMapping("/sent")
     public ResponseEntity<ApiResponse<InboxResponse>> getSent(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication) {
@@ -205,13 +211,14 @@ public class MailReceiveController {
             }
 
             // Fetch emails
-            List<EmailDTO> emails = mailReceiveService.getSent(email, password, limit);
-            if (emails == null) emails = new java.util.ArrayList<>();
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getSent(email, password, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             // Build response
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(0) // Sent items don't really have "unread" count in this context
                     .emails(emails)
                     .build();
@@ -235,6 +242,8 @@ public class MailReceiveController {
     @GetMapping("/labels/{labelId}")
     public ResponseEntity<ApiResponse<InboxResponse>> getEmailsByLabel(
             @PathVariable Long labelId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int limit,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication) {
 
@@ -250,12 +259,13 @@ public class MailReceiveController {
                         .body(ApiResponse.error("Session expired. Please login again."));
             }
 
-            List<EmailDTO> emails = mailReceiveService.getEmailsByLabel(email, password, labelId);
-            if (emails == null) emails = new java.util.ArrayList<>();
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getEmailsByLabel(email, password, labelId, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(0)
                     .emails(emails)
                     .build();
@@ -278,6 +288,7 @@ public class MailReceiveController {
      */
     @GetMapping("/starred")
     public ResponseEntity<ApiResponse<InboxResponse>> getStarred(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication) {
@@ -296,13 +307,14 @@ public class MailReceiveController {
             }
 
             // Fetch emails
-            List<EmailDTO> emails = mailReceiveService.getStarred(email, password, limit);
-            if (emails == null) emails = new java.util.ArrayList<>();
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getStarred(email, password, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             // Build response
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(0)
                     .emails(emails)
                     .build();
@@ -377,6 +389,7 @@ public class MailReceiveController {
      */
     @GetMapping("/trash")
     public ResponseEntity<ApiResponse<InboxResponse>> getTrash(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication) {
@@ -393,12 +406,13 @@ public class MailReceiveController {
                         .body(ApiResponse.error("Session expired. Please login again."));
             }
 
-            List<EmailDTO> emails = mailReceiveService.getTrash(email, password, limit);
-            if (emails == null) emails = new java.util.ArrayList<>();
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getTrash(email, password, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(0)
                     .emails(emails)
                     .build();
@@ -421,6 +435,7 @@ public class MailReceiveController {
      */
     @GetMapping("/spam")
     public ResponseEntity<ApiResponse<InboxResponse>> getSpam(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication) {
@@ -437,12 +452,13 @@ public class MailReceiveController {
                         .body(ApiResponse.error("Session expired. Please login again."));
             }
 
-            List<EmailDTO> emails = mailReceiveService.getSpam(email, password, limit);
-            if (emails == null) emails = new java.util.ArrayList<>();
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getSpam(email, password, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(0)
                     .emails(emails)
                     .build();
@@ -465,6 +481,7 @@ public class MailReceiveController {
      */
     @GetMapping("/snoozed")
     public ResponseEntity<ApiResponse<InboxResponse>> getSnoozed(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication) {
@@ -481,12 +498,13 @@ public class MailReceiveController {
                         .body(ApiResponse.error("Session expired. Please login again."));
             }
 
-            List<EmailDTO> emails = mailReceiveService.getSnoozed(email, password, limit);
-            if (emails == null) emails = new java.util.ArrayList<>();
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getSnoozed(email, password, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(0)
                     .emails(emails)
                     .build();
@@ -509,6 +527,7 @@ public class MailReceiveController {
      */
     @GetMapping("/archive")
     public ResponseEntity<ApiResponse<InboxResponse>> getArchive(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication) {
@@ -525,12 +544,13 @@ public class MailReceiveController {
                         .body(ApiResponse.error("Session expired. Please login again."));
             }
 
-            List<EmailDTO> emails = mailReceiveService.getArchive(email, password, limit);
-            if (emails == null) emails = new java.util.ArrayList<>();
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getArchive(email, password, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(0)
                     .emails(emails)
                     .build();
@@ -553,6 +573,7 @@ public class MailReceiveController {
      */
     @GetMapping("/draft")
     public ResponseEntity<ApiResponse<InboxResponse>> getDrafts(
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int limit,
             @RequestHeader("Authorization") String authHeader,
             Authentication authentication) {
@@ -569,12 +590,13 @@ public class MailReceiveController {
                         .body(ApiResponse.error("Session expired. Please login again."));
             }
 
-            List<EmailDTO> emails = mailReceiveService.getDrafts(email, password, limit);
-            if (emails == null) emails = new java.util.ArrayList<>();
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getDrafts(email, password, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
 
             InboxResponse response = InboxResponse.builder()
                     .email(email)
-                    .totalCount(emails.size())
+                    .totalCount(totalCount)
                     .unreadCount(0)
                     .emails(emails)
                     .build();

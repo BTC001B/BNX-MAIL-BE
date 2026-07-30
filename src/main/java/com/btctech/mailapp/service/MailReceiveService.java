@@ -13,6 +13,7 @@ import com.btctech.mailapp.repository.BlockedSenderRepository;
 
 
 import com.btctech.mailapp.dto.EmailDTO;
+import com.btctech.mailapp.dto.FolderResult;
 import com.btctech.mailapp.dto.StorageQuotaDTO;
 import com.btctech.mailapp.exception.MailException;
 import jakarta.mail.*;
@@ -55,11 +56,10 @@ public class MailReceiveService {
     private final BlockedSenderRepository blockedSenderRepository;
 
 
-
     /**
      * Common method to fetch emails from a specific folder
      */
-    private List<EmailDTO> getEmailsFromFolder(String email, String password, String folderName, int limit) {
+    private FolderResult getEmailsFromFolder(String email, String password, String folderName, int page, int limit) {
         log.info("Fetching messages from folder '{}' for: {}", folderName, email);
 
         Store store = null;
@@ -90,7 +90,7 @@ public class MailReceiveService {
             
             if (!folder.exists()) {
                 log.warn("⚠ FOLDER MISSING: '{}' does not exist for user {}. Returning empty list.", actualFolderName, email);
-                return new ArrayList<>();
+                return new FolderResult(new ArrayList<>(), 0);
             }
             
             folder.open(Folder.READ_ONLY);
@@ -103,10 +103,16 @@ public class MailReceiveService {
             UIDFolder uidFolder = (folder instanceof UIDFolder) ? (UIDFolder) folder : null;
             int messageCount = folder.getMessageCount();
 
-            if (messageCount == 0) return new ArrayList<>();
+            if (messageCount == 0) return new FolderResult(new ArrayList<>(), 0);
 
-            int start = Math.max(1, messageCount - limit + 1);
-            Message[] messages = folder.getMessages(start, messageCount);
+            int endIndex = messageCount - (page - 1) * limit;
+            int startIndex = Math.max(1, endIndex - limit + 1);
+
+            if (endIndex < 1) {
+                return new FolderResult(new ArrayList<>(), messageCount);
+            }
+
+            Message[] messages = folder.getMessages(startIndex, endIndex);
 
             List<String> blockedEmails = new ArrayList<>();
             if ("INBOX".equalsIgnoreCase(folderName)) {
@@ -139,7 +145,7 @@ public class MailReceiveService {
                 }
             }
 
-            return emails;
+            return new FolderResult(emails, messageCount);
 
         } catch (MessagingException e) {
             log.error("Failed to fetch folder {}: {}", folderName, e.getMessage(), e);
@@ -149,12 +155,12 @@ public class MailReceiveService {
         }
     }
 
-    public List<EmailDTO> getInbox(String email, String password, int limit) {
-        return getEmailsFromFolder(email, password, "INBOX", limit);
+    public FolderResult getInbox(String email, String password, int page, int limit) {
+        return getEmailsFromFolder(email, password, "INBOX", page, limit);
     }
 
-    public List<EmailDTO> getDrafts(String email, String password, int limit) {
-        return getEmailsFromFolder(email, password, "Drafts", limit);
+    public FolderResult getDrafts(String email, String password, int page, int limit) {
+        return getEmailsFromFolder(email, password, "Drafts", page, limit);
     }
 
     /**
@@ -286,59 +292,72 @@ public class MailReceiveService {
         }
     }
 
-    public List<EmailDTO> getSent(String email, String password, int limit) {
-        return getEmailsFromFolder(email, password, "Sent", limit);
+    public FolderResult getSent(String email, String password, int page, int limit) {
+        return getEmailsFromFolder(email, password, "Sent", page, limit);
     }
 
-    public List<EmailDTO> getTrash(String email, String password, int limit) {
-        return getEmailsFromFolder(email, password, "Trash", limit);
+    public FolderResult getTrash(String email, String password, int page, int limit) {
+        return getEmailsFromFolder(email, password, "Trash", page, limit);
     }
 
-    public List<EmailDTO> getSpam(String email, String password, int limit) {
-        return getEmailsFromFolder(email, password, "Spam", limit);
+    public FolderResult getSpam(String email, String password, int page, int limit) {
+        return getEmailsFromFolder(email, password, "Spam", page, limit);
     }
 
-    public List<EmailDTO> getSnoozed(String email, String password, int limit) {
-        return getEmailsFromFolder(email, password, "Snoozed", limit);
+    public FolderResult getSnoozed(String email, String password, int page, int limit) {
+        return getEmailsFromFolder(email, password, "Snoozed", page, limit);
     }
 
-    public List<EmailDTO> getArchive(String email, String password, int limit) {
-        return getEmailsFromFolder(email, password, "Archive", limit);
+    public FolderResult getArchive(String email, String password, int page, int limit) {
+        return getEmailsFromFolder(email, password, "Archive", page, limit);
     }
 
-    public List<EmailDTO> getEmailsByCategory(String email, String password, String category, int limit) {
+    public FolderResult getEmailsByCategory(String email, String password, String category, int page, int limit) {
         log.info("Fetching emails for category '{}' for: {}", category, email);
         
         // Strategy: Fetch a larger batch from Inbox and filter by calculated category
-        // Since categorization is done on-the-fly, we need to scan the latest messages
         int scanLimit = Math.max(limit * 4, 100); 
-        List<EmailDTO> allInbox = getInbox(email, password, scanLimit);
+        List<EmailDTO> allInbox = getInbox(email, password, 1, scanLimit).getEmails();
         
-        return allInbox.stream()
+        List<EmailDTO> filtered = allInbox.stream()
                 .filter(e -> {
                     if ("UNREAD".equalsIgnoreCase(category)) {
                         return !e.isRead();
                     }
                     return category.equalsIgnoreCase(e.getCategory());
                 })
-                .limit(limit)
                 .collect(java.util.stream.Collectors.toList());
+
+        int totalCount = filtered.size();
+        int startIndex = (page - 1) * limit;
+        List<EmailDTO> paginated = new ArrayList<>();
+        if (startIndex < totalCount) {
+            paginated = filtered.subList(startIndex, Math.min(startIndex + limit, totalCount));
+        }
+        return new FolderResult(paginated, totalCount);
     }
 
 
 
-    public List<EmailDTO> getEmailsByLabel(String email, String password, Long labelId) {
+    public FolderResult getEmailsByLabel(String email, String password, Long labelId, int page, int limit) {
         log.info("Fetching emails for label ID {} for: {}", labelId, email);
         
         List<MailLabelMapping> mappings = labelMappingRepository.findByUserEmailAndLabelId(email, labelId);
-        if (mappings.isEmpty()) return new ArrayList<>();
+        if (mappings.isEmpty()) return new FolderResult(new ArrayList<>(), 0);
+
+        int totalCount = mappings.size();
+        mappings.sort((a, b) -> b.getId().compareTo(a.getId())); // Newest first
+
+        int startIndex = (page - 1) * limit;
+        if (startIndex >= totalCount) return new FolderResult(new ArrayList<>(), totalCount);
+        List<MailLabelMapping> pageMappings = mappings.subList(startIndex, Math.min(startIndex + limit, totalCount));
 
         jakarta.mail.Store store = null;
         try {
             store = connect(email, password);
             List<EmailDTO> labeledEmails = new ArrayList<>();
             
-            for (MailLabelMapping mapping : mappings) {
+            for (MailLabelMapping mapping : pageMappings) {
                 try {
                     String folderToOpen = mapping.getFolderName();
                     if ("Sent".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveSentFolderName(store);
@@ -374,7 +393,7 @@ public class MailReceiveService {
                     log.warn("Failed to fetch labeled email for UID {}: {}", mapping.getEmailUid(), e.getMessage());
                 }
             }
-            return labeledEmails;
+            return new FolderResult(labeledEmails, totalCount);
         } catch (jakarta.mail.MessagingException e) {
             log.error("Failed to connect for labeled emails: {}", e.getMessage());
             throw new MailException("Failed to fetch labeled emails.");
@@ -383,20 +402,23 @@ public class MailReceiveService {
         }
     }
 
-    public List<EmailDTO> getStarred(String email, String password, int limit) {
-        log.info("Fetching starred messages from local DB for: {}", email);
+    public FolderResult getStarred(String email, String password, int page, int limit) {
+        log.info("Fetching starred emails for: {}", email);
         
-        // 1. Get starred mappings from DB
         List<StarredEmail> starredMappings = starredEmailRepository.findByUserEmail(email);
-        if (starredMappings.isEmpty()) return new ArrayList<>();
+        if (starredMappings.isEmpty()) return new FolderResult(new ArrayList<>(), 0);
+
+        int totalCount = starredMappings.size();
+        int startIndex = (page - 1) * limit;
+        if (startIndex >= totalCount) return new FolderResult(new ArrayList<>(), totalCount);
+        List<StarredEmail> pageMappings = starredMappings.subList(startIndex, Math.min(startIndex + limit, totalCount));
 
         Store store = null;
         try {
             store = connect(email, password);
             List<EmailDTO> starredEmails = new ArrayList<>();
             
-            // 2. Fetch messages from IMAP using UIDs stored in DB
-            for (StarredEmail mapping : starredMappings) {
+            for (StarredEmail mapping : pageMappings) {
                 try {
                     String folderToOpen = mapping.getFolderName();
                     if ("Sent".equalsIgnoreCase(folderToOpen)) folderToOpen = resolveSentFolderName(store);
@@ -434,7 +456,7 @@ public class MailReceiveService {
                     log.warn("Failed to fetch starred email for UID {}: {}", mapping.getUid(), e.getMessage());
                 }
             }
-            return starredEmails;
+            return new FolderResult(starredEmails, totalCount);
         } catch (MessagingException e) {
             log.error("Failed to connect for starred emails: {}", e.getMessage());
             throw new MailException("Failed to fetch starred emails.");
