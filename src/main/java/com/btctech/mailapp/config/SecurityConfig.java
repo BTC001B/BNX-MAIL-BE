@@ -48,6 +48,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // Protected endpoints (require JWT)
+                        .requestMatchers("/api/admin/**").authenticated() // ✅ Admin API
                         .requestMatchers("/api/oauth/authorize").authenticated() // ✅ Protected authorize
                         .requestMatchers("/api/emails/**").authenticated()
                         .requestMatchers("/api/mail/**").authenticated()

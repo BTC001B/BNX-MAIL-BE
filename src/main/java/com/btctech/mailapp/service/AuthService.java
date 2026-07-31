@@ -151,11 +151,14 @@ public class AuthService {
             templates.add(fn.substring(0, 1) + ln + yearStr); // e.g. skumar89
         }
 
-        if ("PERSONAL".equalsIgnoreCase(mode) || "CHILD".equalsIgnoreCase(mode)) {
-            templates = templates.stream()
-                .map(this::enforceUsernameRules)
-                .collect(Collectors.toList());
-        }
+        final String finalFn = fn;
+        final String finalLn = ln;
+        final String finalYear = fullYearStr;
+        final String finalMonth = monthStr;
+        final String finalDay = dayStr;
+        templates = templates.stream()
+            .map(base -> enforceUsernameRules(base, finalFn, finalLn, finalYear, finalMonth, finalDay))
+            .collect(Collectors.toList());
 
         // Filter and check database uniqueness
         for (String candidate : templates) {
@@ -169,9 +172,8 @@ public class AuthService {
         int suffix = 1;
         while (suggestions.size() < 3) {
             String candidate = fn + yearStr + suffix;
-            if ("PERSONAL".equalsIgnoreCase(mode) || "CHILD".equalsIgnoreCase(mode)) {
-                candidate = enforceUsernameRules(candidate);
-            }
+            candidate = enforceUsernameRules(candidate, fn, ln, fullYearStr, monthStr, dayStr);
+            
             if (isUsernameAvailable(candidate)) {
                 suggestions.add(candidate);
             }
@@ -181,7 +183,7 @@ public class AuthService {
         return suggestions;
     }
 
-    private String enforceUsernameRules(String base) {
+    private String enforceUsernameRules(String base, String fn, String ln, String year, String month, String day) {
         StringBuilder letters = new StringBuilder();
         StringBuilder digits = new StringBuilder();
         
@@ -190,20 +192,41 @@ public class AuthService {
             else if (Character.isDigit(c)) digits.append(c);
         }
         
-        java.util.Random rand = new java.util.Random();
+        if (letters.length() < 7) {
+            String extraLetters = fn + ln + fn + ln; 
+            int idx = 0;
+            while (letters.length() < 7 && idx < extraLetters.length()) {
+                letters.append(extraLetters.charAt(idx++));
+            }
+            while (letters.length() < 7) {
+                letters.append('a'); // extreme fallback for tiny names like "a"
+            }
+        }
         
-        while (letters.length() < 7) {
-            letters.append((char) ('a' + rand.nextInt(26)));
-        }
-        if (letters.length() > 7) {
-            letters.setLength(7);
+        if (digits.length() < 3) {
+            String extraDigits = year + month + day;
+            int idx = 0;
+            while (digits.length() < 3 && idx < extraDigits.length()) {
+                digits.append(extraDigits.charAt(idx++));
+            }
+            int num = 1;
+            while (digits.length() < 3) {
+                digits.append(num++);
+            }
         }
         
-        while (digits.length() < 3) {
-            digits.append(rand.nextInt(10));
-        }
-        if (digits.length() > 3) {
-            digits.setLength(3);
+        if (letters.length() + digits.length() <= 10) {
+            String extraCombined = ln + fn + year + month + day;
+            int idx = 0;
+            while (letters.length() + digits.length() <= 10 && idx < extraCombined.length()) {
+                char c = extraCombined.charAt(idx++);
+                if (Character.isLetter(c)) letters.append(c);
+                else if (Character.isDigit(c)) digits.append(c);
+            }
+            int num = 1;
+            while (letters.length() + digits.length() <= 10) {
+                digits.append(num++);
+            }
         }
         
         return letters.toString() + digits.toString();

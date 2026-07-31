@@ -18,5 +18,8 @@ public interface MailAccountRepository extends JpaRepository<MailAccount, Long> 
     @org.springframework.data.jpa.repository.Query("UPDATE MailAccount m SET m.storageUsed = m.storageUsed + :bytesToAdd WHERE m.id = :accountId")
     void updateStorageUsed(Long accountId, long bytesToAdd);
 
+    @org.springframework.data.jpa.repository.Query("SELECT SUM(m.storageUsed) FROM MailAccount m")
+    Long calculateTotalStorageUsed();
+
     List<MailAccount> findByEmailEndingWith(String domain);
 }
