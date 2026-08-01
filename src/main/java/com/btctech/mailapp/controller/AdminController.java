@@ -49,4 +49,23 @@ public class AdminController {
         adminService.forceLogout(id);
         return ResponseEntity.ok(ApiResponse.success("Logout forced", "User sessions destroyed successfully"));
     }
+
+    @GetMapping("/cases/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getAbuseCase(@PathVariable Long id) {
+        Map<String, Object> caseData = adminService.getAbuseCase(id);
+        return ResponseEntity.ok(ApiResponse.success(caseData, "Case fetched successfully"));
+    }
+
+    @PutMapping("/cases/{id}/decide")
+    public ResponseEntity<ApiResponse<String>> decideAbuseCase(
+            @PathVariable Long id, 
+            @RequestBody Map<String, String> payload) {
+        String decision = payload.get("decision");
+        if (decision == null || (!decision.equals("UNBAN") && !decision.equals("BAN"))) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Invalid decision. Must be UNBAN or BAN."));
+        }
+        
+        adminService.decideAbuseCase(id, decision);
+        return ResponseEntity.ok(ApiResponse.success("Decision recorded", "Case successfully concluded."));
+    }
 }

@@ -35,6 +35,61 @@ public class AdminService {
     private final BusinessProfileRepository businessProfileRepository;
     private final DomainRepository domainRepository;
     private final ActivityLogRepository activityLogRepository;
+    private final com.btctech.mailapp.repository.ReportRepository reportRepository;
+    private final com.btctech.mailapp.repository.AppealRepository appealRepository;
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getAbuseCase(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow();
+        
+        List<com.btctech.mailapp.entity.Report> reports = reportRepository.findByReportedUserIdOrderByCreatedAtDesc(userId);
+        List<Map<String, Object>> reportList = reports.stream().map(r -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("reporterEmail", r.getReporter().getEmail() != null ? r.getReporter().getEmail() : r.getReporter().getUsername() + "@bnxmail.com");
+            map.put("reason", r.getReason());
+            map.put("emailSubject", r.getReportedEmailSubject());
+            map.put("date", r.getCreatedAt());
+            return map;
+        }).collect(Collectors.toList());
+
+        java.util.Optional<com.btctech.mailapp.entity.Appeal> appealOpt = appealRepository.findFirstByBannedUserIdOrderByCreatedAtDesc(userId);
+        
+        Map<String, Object> caseData = new HashMap<>();
+        caseData.put("reports", reportList);
+        caseData.put("appeal", appealOpt.map(com.btctech.mailapp.entity.Appeal::getAppealMessage).orElse(null));
+        
+        return caseData;
+    }
+    
+    @Transactional
+    public void decideAbuseCase(Long userId, String decision) {
+        User user = userRepository.findById(userId).orElseThrow();
+        if ("UNBAN".equalsIgnoreCase(decision)) {
+            user.setActive(true);
+            userRepository.save(user);
+            reportRepository.deleteByReportedUserId(userId);
+            
+            // Optionally mark appeal as APPROVED
+            appealRepository.findFirstByBannedUserIdOrderByCreatedAtDesc(userId).ifPresent(appeal -> {
+                appeal.setStatus(com.btctech.mailapp.entity.Appeal.AppealStatus.APPROVED);
+                appealRepository.save(appeal);
+            });
+            
+            ActivityLog logRecord = new ActivityLog();
+            logRecord.setUser(user);
+            logRecord.setActivity("Unbanned with Warning by Admin");
+            activityLogRepository.save(logRecord);
+        } else if ("BAN".equalsIgnoreCase(decision)) {
+            appealRepository.findFirstByBannedUserIdOrderByCreatedAtDesc(userId).ifPresent(appeal -> {
+                appeal.setStatus(com.btctech.mailapp.entity.Appeal.AppealStatus.REJECTED);
+                appealRepository.save(appeal);
+            });
+            ActivityLog logRecord = new ActivityLog();
+            logRecord.setUser(user);
+            logRecord.setActivity("Appeal Rejected - Permanent Ban enforced");
+            activityLogRepository.save(logRecord);
+        }
+    }
 
     public Map<String, Object> getDashboardMetrics() {
         Map<String, Object> metrics = new HashMap<>();

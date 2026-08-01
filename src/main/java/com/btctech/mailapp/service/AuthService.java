@@ -94,15 +94,30 @@ public class AuthService {
     }
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final com.btctech.mailapp.repository.AppealRepository appealRepository;
     private final JwtUtil jwtUtil;
     private final MailboxService mailboxService;
     private final SessionService sessionService;
     private final UserService userService;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
-    private final JavaMailSender javaMailSender;
     private final UserRepository userRepository;
     private final MailAccountRepository mailAccountRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final JavaMailSender javaMailSender;
     private final com.btctech.mailapp.repository.BusinessProfileRepository businessProfileRepository;
+
+    @Transactional
+    public void submitAppeal(String email, String message) {
+        MailAccount account = mailAccountRepository.findByEmail(email)
+            .orElseThrow(() -> new MailException("Account not found"));
+        User user = userRepository.findById(account.getUserId())
+            .orElseThrow(() -> new MailException("User not found"));
+        
+        com.btctech.mailapp.entity.Appeal appeal = new com.btctech.mailapp.entity.Appeal();
+        appeal.setBannedUser(user);
+        appeal.setAppealMessage(message);
+        appeal.setStatus(com.btctech.mailapp.entity.Appeal.AppealStatus.PENDING);
+        appealRepository.save(appeal);
+    }
 
     /**
      * Generate username suggestions based on firstName, lastName and dob

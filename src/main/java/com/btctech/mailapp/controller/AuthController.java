@@ -89,6 +89,28 @@ public class AuthController {
     }
 
     /**
+     * Submit an appeal for a suspended account
+     */
+    @PostMapping("/appeal")
+    @Transactional
+    public ResponseEntity<ApiResponse<String>> submitAppeal(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String message = payload.get("message");
+        
+        if (email == null || message == null || message.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Email and appeal message are required"));
+        }
+        
+        try {
+            authService.submitAppeal(email, message);
+            return ResponseEntity.ok(ApiResponse.success("Appeal submitted", "Your appeal has been successfully submitted for review."));
+        } catch (Exception e) {
+            log.error("Failed to submit appeal: ", e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to submit appeal."));
+        }
+    }
+
+    /**
      * STEP 3: Login with EMAIL + password (Enterprise Version)
      */
     @PostMapping("/login")
@@ -102,6 +124,15 @@ public class AuthController {
         // 1. Authenticate & Detect Upgrade
         com.btctech.mailapp.service.UserService.LoginResult result = userService.authenticate(request.getEmail(), request.getPassword());
         User user = result.getUser();
+
+        // 1.5 Check if user is suspended
+        if (Boolean.FALSE.equals(user.getActive())) {
+            log.warn("Login blocked: User {} is suspended", request.getEmail());
+            Map<String, Object> banData = new HashMap<>();
+            banData.put("status", "ACCOUNT_SUSPENDED");
+            banData.put("bannedEmail", request.getEmail());
+            return ResponseEntity.status(403).body(ApiResponse.error("Your account has been suspended due to abuse reports. Please submit an appeal.", banData));
+        }
 
         // 2. Extract Metadata
         String ipAddress = httpRequest.getHeader("X-Forwarded-For");
