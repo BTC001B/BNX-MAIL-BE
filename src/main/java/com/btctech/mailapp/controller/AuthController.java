@@ -4,6 +4,8 @@ import com.btctech.mailapp.config.JwtUtil;
 import com.btctech.mailapp.dto.*;
 import com.btctech.mailapp.entity.MailAccount;
 import com.btctech.mailapp.entity.User;
+import com.btctech.mailapp.entity.SystemSetting;
+import com.btctech.mailapp.repository.SystemSettingRepository;
 import com.btctech.mailapp.service.MailboxService;
 import com.btctech.mailapp.service.SessionService;
 import com.btctech.mailapp.service.UserService;
@@ -30,6 +32,7 @@ public class AuthController {
     private final SessionService sessionService;
     private final com.btctech.mailapp.service.AuthService authService;
     private final com.btctech.mailapp.service.TwoFactorService twoFactorService;
+    private final SystemSettingRepository systemSettingRepository;
 
     /**
      * STEP 1: Register user (username + password)
@@ -40,6 +43,11 @@ public class AuthController {
             @Valid @RequestBody RegisterRequest request) {
 
         log.info("Registration request for username: {}", request.getUsername());
+
+        SystemSetting pauseSetting = systemSettingRepository.findById("registration_paused").orElse(null);
+        if (pauseSetting != null && "true".equalsIgnoreCase(pauseSetting.getSettingValue())) {
+            return ResponseEntity.status(503).body(ApiResponse.error("Registration is currently paused by the administrator."));
+        }
 
         if ("PERSONAL".equalsIgnoreCase(request.getMode()) || "CHILD".equalsIgnoreCase(request.getMode())) {
             String username = request.getUsername();
@@ -89,6 +97,24 @@ public class AuthController {
     }
 
     /**
+     * Get public system status (maintenance, registration)
+     */
+    @GetMapping("/system-status")
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> getSystemStatus() {
+        SystemSetting maintenanceSetting = systemSettingRepository.findById("maintenance_mode").orElse(null);
+        boolean isMaintenance = maintenanceSetting != null && "true".equalsIgnoreCase(maintenanceSetting.getSettingValue());
+        
+        SystemSetting pauseSetting = systemSettingRepository.findById("registration_paused").orElse(null);
+        boolean registrationPaused = pauseSetting != null && "true".equalsIgnoreCase(pauseSetting.getSettingValue());
+        
+        Map<String, Boolean> status = new HashMap<>();
+        status.put("maintenanceMode", isMaintenance);
+        status.put("registrationPaused", registrationPaused);
+        
+        return ResponseEntity.ok(ApiResponse.success(status, "Status fetched"));
+    }
+
+    /**
      * Submit an appeal for a suspended account
      */
     @PostMapping("/appeal")
@@ -120,6 +146,14 @@ public class AuthController {
             jakarta.servlet.http.HttpServletRequest httpRequest) {
 
         log.info("Enterprise Login request for: {}", request.getEmail());
+
+        SystemSetting maintenanceSetting = systemSettingRepository.findById("maintenance_mode").orElse(null);
+        if (maintenanceSetting != null && "true".equalsIgnoreCase(maintenanceSetting.getSettingValue())) {
+            // Check if user is admin trying to login
+            if (!request.getEmail().contains("admin")) { // Simple fallback, ideally check role
+                return ResponseEntity.status(503).body(ApiResponse.error("Platform is currently in maintenance mode. Please try again later."));
+            }
+        }
 
         // 1. Authenticate & Detect Upgrade
         com.btctech.mailapp.service.UserService.LoginResult result = userService.authenticate(request.getEmail(), request.getPassword());

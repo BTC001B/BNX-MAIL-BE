@@ -38,6 +38,14 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(users, "Users fetched successfully"));
     }
 
+    @GetMapping("/audit-logs")
+    public ResponseEntity<ApiResponse<Page<Map<String, Object>>>> getAuditLogs(
+            @RequestParam(required = false) String query,
+            Pageable pageable) {
+        Page<Map<String, Object>> logs = adminService.getAuditLogs(query, pageable);
+        return ResponseEntity.ok(ApiResponse.success(logs, "Audit logs fetched successfully"));
+    }
+
     @PutMapping("/users/{id}/status")
     public ResponseEntity<ApiResponse<String>> toggleUserStatus(@PathVariable Long id) {
         adminService.toggleUserStatus(id);
@@ -67,5 +75,53 @@ public class AdminController {
         
         adminService.decideAbuseCase(id, decision);
         return ResponseEntity.ok(ApiResponse.success("Decision recorded", "Case successfully concluded."));
+    }
+
+    @PostMapping("/system/broadcast")
+    public ResponseEntity<ApiResponse<String>> sendGlobalBroadcast(@RequestBody Map<String, String> payload) {
+        String adminUsername = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        String subject = payload.get("subject");
+        String message = payload.get("message");
+        
+        if (subject == null || message == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Subject and message are required"));
+        }
+        
+        adminService.sendGlobalBroadcast(adminUsername, subject, message);
+        return ResponseEntity.ok(ApiResponse.success("Broadcast initiated", "The email is being sent to all active users."));
+    }
+
+    @PostMapping("/system/force-logout-all")
+    public ResponseEntity<ApiResponse<String>> forceGlobalLogoutAll() {
+        String adminUsername = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        adminService.forceGlobalLogoutAll(adminUsername);
+        return ResponseEntity.ok(ApiResponse.success("Global Logout Executed", "All sessions across the platform have been destroyed."));
+    }
+
+    @PostMapping("/system/force-logout-by-email")
+    public ResponseEntity<ApiResponse<String>> forceLogoutByEmail(@RequestBody Map<String, String> payload) {
+        String adminUsername = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = payload.get("email");
+        if (email == null || email.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Email/username is required"));
+        }
+        try {
+            adminService.forceLogoutByEmail(email, adminUsername);
+            return ResponseEntity.ok(ApiResponse.success("Logout Executed", "User session destroyed successfully."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to force logout: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/system/settings")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getSystemSettings() {
+        return ResponseEntity.ok(ApiResponse.success(adminService.getSystemSettings(), "Settings fetched successfully"));
+    }
+
+    @PutMapping("/system/settings")
+    public ResponseEntity<ApiResponse<String>> updateSystemSettings(@RequestBody Map<String, String> payload) {
+        String adminUsername = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        adminService.updateSystemSettings(adminUsername, payload);
+        return ResponseEntity.ok(ApiResponse.success("Settings Updated", "System settings have been successfully updated."));
     }
 }

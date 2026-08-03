@@ -28,6 +28,8 @@ public class JwtFilter extends OncePerRequestFilter {
     
     private final JwtUtil jwtUtil;
     private final UserService userService;
+    private final com.btctech.mailapp.repository.SystemSettingRepository systemSettingRepository;
+    private final com.btctech.mailapp.repository.RefreshTokenRepository refreshTokenRepository;
     
     @Override
     protected void doFilterInternal(
@@ -41,6 +43,7 @@ public class JwtFilter extends OncePerRequestFilter {
             path.equals("/index.html") ||
             path.startsWith("/api/auth/register") || 
             path.startsWith("/api/auth/login") ||
+            path.startsWith("/api/auth/system-status") ||
             path.equals("/error")) {
             filterChain.doFilter(request, response);
             return;
@@ -82,7 +85,39 @@ public class JwtFilter extends OncePerRequestFilter {
                 }
                 
                 if (user != null) {
+                    if (Boolean.FALSE.equals(user.getActive())) {
+                        log.warn("✗ Token rejected: User {} is suspended", jwtSubject);
+                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\": \"Account suspended\"}");
+                        return;
+                    }
+                    
+                    if (!"ADMIN".equalsIgnoreCase(user.getRole())) {
+                        com.btctech.mailapp.entity.SystemSetting maintenanceSetting = systemSettingRepository.findById("maintenance_mode").orElse(null);
+                        if (maintenanceSetting != null && "true".equalsIgnoreCase(maintenanceSetting.getSettingValue())) {
+                            log.warn("✗ Token rejected: Platform is in maintenance mode");
+                            response.setStatus(503);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\": \"maintenance_mode\", \"message\": \"Platform is under maintenance\"}");
+                            return;
+                        }
+                    }
+
                     if (jwtUtil.validateToken(jwt, jwtSubject)) {
+                        
+                        // Check if user has active sessions (if no refresh tokens exist, they were force logged out)
+                        // Note: Temporary tokens for 2FA bypass this check as they haven't established a full session yet
+                        boolean isTempToken = jwtSubject.startsWith("temp_");
+                        boolean hasActiveSessions = !refreshTokenRepository.findAllByUserAndRevokedFalse(user).isEmpty();
+                        if (!isTempToken && !hasActiveSessions) {
+                            log.warn("✗ Token rejected: User {} has no active sessions (forcefully logged out)", jwtSubject);
+                            response.setStatus(401);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\": \"Session invalidated\"}");
+                            return;
+                        }
+
                         // Map user roles into authorities
                         List<SimpleGrantedAuthority> authorities = Collections.singletonList(
                             new SimpleGrantedAuthority(user.getRole() != null ? user.getRole() : "ROLE_USER")

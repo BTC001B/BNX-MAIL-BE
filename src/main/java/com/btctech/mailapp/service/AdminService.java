@@ -7,7 +7,9 @@ import com.btctech.mailapp.repository.OrganizationRepository;
 import com.btctech.mailapp.repository.BusinessProfileRepository;
 import com.btctech.mailapp.repository.DomainRepository;
 import com.btctech.mailapp.repository.ActivityLogRepository;
+import com.btctech.mailapp.repository.SystemSettingRepository;
 import com.btctech.mailapp.entity.ActivityLog;
+import com.btctech.mailapp.entity.SystemSetting;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,8 @@ import org.springframework.data.domain.Pageable;
 import com.btctech.mailapp.entity.User;
 import com.btctech.mailapp.entity.MailAccount;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.SimpleMailMessage;
 
 @Service
 @RequiredArgsConstructor
@@ -35,8 +39,81 @@ public class AdminService {
     private final BusinessProfileRepository businessProfileRepository;
     private final DomainRepository domainRepository;
     private final ActivityLogRepository activityLogRepository;
+    private final SystemSettingRepository systemSettingRepository;
     private final com.btctech.mailapp.repository.ReportRepository reportRepository;
     private final com.btctech.mailapp.repository.AppealRepository appealRepository;
+    private final JavaMailSender mailSender;
+    private final SessionService sessionService;
+    private final com.btctech.mailapp.repository.UserSessionRepository userSessionRepository;
+
+    public void sendGlobalBroadcast(String adminUsername, String subject, String message) {
+        User admin = userRepository.findByUsername(adminUsername).orElse(null);
+        List<User> activeUsers = userRepository.findAll().stream()
+                .filter(u -> Boolean.TRUE.equals(u.getActive()))
+                .collect(Collectors.toList());
+                
+        for (User user : activeUsers) {
+            String toEmail = user.getEmail() != null ? user.getEmail() : user.getUsername() + "@bnxmail.com";
+            try {
+                SimpleMailMessage mailMessage = new SimpleMailMessage();
+                mailMessage.setFrom("admin@bnxmail.com");
+                mailMessage.setTo(toEmail);
+                mailMessage.setSubject(subject);
+                mailMessage.setText(message);
+                mailSender.send(mailMessage);
+            } catch (Exception e) {
+                log.error("Failed to send broadcast to {}", toEmail, e);
+            }
+        }
+        
+        if (admin != null) {
+            ActivityLog logRecord = new ActivityLog();
+            logRecord.setUser(admin);
+            logRecord.setActivity("Global Broadcast Sent");
+            logRecord.setDetails("Subject: " + subject + " to " + activeUsers.size() + " users.");
+            activityLogRepository.save(logRecord);
+        }
+    }
+
+    @Transactional
+    public void forceGlobalLogoutAll(String adminUsername) {
+        User admin = userRepository.findByUsername(adminUsername).orElse(null);
+        refreshTokenRepository.deleteAll();
+        userSessionRepository.deleteAll();
+        
+        if (admin != null) {
+            ActivityLog logRecord = new ActivityLog();
+            logRecord.setUser(admin);
+            logRecord.setActivity("Forced Global Logout ALL Users");
+            logRecord.setDetails("All sessions globally destroyed by admin.");
+            activityLogRepository.save(logRecord);
+        }
+    }
+
+    public Map<String, String> getSystemSettings() {
+        return systemSettingRepository.findAll().stream()
+                .collect(Collectors.toMap(SystemSetting::getSettingKey, SystemSetting::getSettingValue));
+    }
+
+    @Transactional
+    public void updateSystemSettings(String adminUsername, Map<String, String> newSettings) {
+        User admin = userRepository.findByUsername(adminUsername).orElse(null);
+        
+        for (Map.Entry<String, String> entry : newSettings.entrySet()) {
+            SystemSetting setting = systemSettingRepository.findById(entry.getKey())
+                    .orElse(new SystemSetting(entry.getKey(), ""));
+            setting.setSettingValue(entry.getValue());
+            systemSettingRepository.save(setting);
+        }
+
+        if (admin != null) {
+            ActivityLog logRecord = new ActivityLog();
+            logRecord.setUser(admin);
+            logRecord.setActivity("System Settings Updated");
+            logRecord.setDetails("Updated keys: " + String.join(", ", newSettings.keySet()));
+            activityLogRepository.save(logRecord);
+        }
+    }
 
     @Transactional(readOnly = true)
     public Map<String, Object> getAbuseCase(Long userId) {
@@ -169,6 +246,40 @@ public class AdminService {
         });
     }
 
+    @Transactional(readOnly = true)
+    public Page<Map<String, Object>> getAuditLogs(String query, Pageable pageable) {
+        Page<ActivityLog> logs;
+        if (query == null || query.trim().isEmpty()) {
+            logs = activityLogRepository.findAllByOrderByTimestampDesc(pageable);
+        } else {
+            logs = activityLogRepository.searchLogs(query, pageable);
+        }
+        
+        return logs.map(log -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", log.getId());
+            map.put("activity", log.getActivity());
+            map.put("details", log.getDetails());
+            map.put("ipAddress", log.getIpAddress());
+            map.put("deviceName", log.getDeviceName());
+            map.put("timestamp", log.getTimestamp());
+            
+            if (log.getUser() != null) {
+                String displayEmail = log.getUser().getEmail() != null ? log.getUser().getEmail() : log.getUser().getUsername();
+                if (!displayEmail.contains("@")) {
+                    displayEmail = displayEmail + "@bnxmail.com";
+                }
+                map.put("userEmail", displayEmail);
+                map.put("userId", log.getUser().getId());
+            } else {
+                map.put("userEmail", "System");
+                map.put("userId", null);
+            }
+            
+            return map;
+        });
+    }
+
     @Transactional
     public void toggleUserStatus(Long userId) {
         User user = userRepository.findById(userId)
@@ -190,9 +301,34 @@ public class AdminService {
         // Delete all refresh tokens to kill sessions
         refreshTokenRepository.deleteByUser(user);
         
+        // Delete password sessions
+        sessionService.deleteSessionsByUserId(user.getId());
+        
         ActivityLog logRecord = new ActivityLog();
         logRecord.setUser(user);
-        logRecord.setActivity("Forced Global Logout by Admin");
+        logRecord.setActivity("Forced Logout by Admin");
+        logRecord.setDetails("Admin forced logout from User Management");
+        activityLogRepository.save(logRecord);
+    }
+
+    @Transactional
+    public void forceLogoutByEmail(String email, String adminUsername) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            user = userRepository.findByUsername(email).orElseThrow(() -> new RuntimeException("User not found"));
+        }
+        
+        // Delete all refresh tokens to kill sessions
+        refreshTokenRepository.deleteByUser(user);
+        
+        // Delete password sessions
+        sessionService.deleteSessionsByUserId(user.getId());
+        
+        User admin = userRepository.findByUsername(adminUsername).orElse(null);
+        ActivityLog logRecord = new ActivityLog();
+        logRecord.setUser(admin != null ? admin : user);
+        logRecord.setActivity("Targeted Force Logout");
+        logRecord.setDetails("Admin forced logout of user: " + email);
         activityLogRepository.save(logRecord);
     }
 }

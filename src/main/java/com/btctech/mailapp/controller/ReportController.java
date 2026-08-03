@@ -7,6 +7,7 @@ import com.btctech.mailapp.entity.User;
 import com.btctech.mailapp.repository.MailAccountRepository;
 import com.btctech.mailapp.repository.ReportRepository;
 import com.btctech.mailapp.repository.UserRepository;
+import com.btctech.mailapp.service.AdminService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ public class ReportController {
     private final ReportRepository reportRepository;
     private final MailAccountRepository mailAccountRepository;
     private final UserRepository userRepository;
+    private final AdminService adminService;
     
     @PostMapping
     @Transactional
@@ -69,6 +71,12 @@ public class ReportController {
             log.warn("User {} hit 5 reports. Auto-banning...", reportedUser.getUsername());
             reportedUser.setActive(false);
             userRepository.save(reportedUser);
+            try {
+                adminService.forceLogout(reportedUser.getId());
+                log.info("Forced logout for auto-banned user {}", reportedUser.getUsername());
+            } catch (Exception e) {
+                log.error("Error forcing logout for auto-banned user", e);
+            }
         }
         
         return ResponseEntity.ok(ApiResponse.success("Report submitted", "Thank you for keeping BNX Mail safe."));

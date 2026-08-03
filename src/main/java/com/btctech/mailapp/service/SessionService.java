@@ -138,6 +138,15 @@ public class SessionService {
             log.info("Deleted session for user: {}", session.getUserId());
         });
     }
+
+    /**
+     * Delete all sessions by user ID
+     */
+    @Transactional
+    public void deleteSessionsByUserId(Long userId) {
+        sessionRepository.deleteByUserId(userId);
+        log.info("Deleted all sessions for user: {}", userId);
+    }
     
     /**
      * Encrypt text using AES

@@ -19,4 +19,8 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     // Get all sessions for a user
     @Query("SELECT s FROM UserSession s WHERE s.userId = :userId")
     java.util.List<UserSession> findByUserId(Long userId);
+    
+    @Modifying
+    @Query("DELETE FROM UserSession s WHERE s.userId = :userId")
+    void deleteByUserId(Long userId);
 }
