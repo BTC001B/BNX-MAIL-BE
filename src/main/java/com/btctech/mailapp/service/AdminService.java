@@ -45,6 +45,8 @@ public class AdminService {
     private final JavaMailSender mailSender;
     private final SessionService sessionService;
     private final com.btctech.mailapp.repository.UserSessionRepository userSessionRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final UserService userService;
 
     public void sendGlobalBroadcast(String adminUsername, String subject, String message) {
         User admin = userRepository.findByUsername(adminUsername).orElse(null);
@@ -132,6 +134,8 @@ public class AdminService {
         java.util.Optional<com.btctech.mailapp.entity.Appeal> appealOpt = appealRepository.findFirstByBannedUserIdOrderByCreatedAtDesc(userId);
         
         Map<String, Object> caseData = new HashMap<>();
+        caseData.put("reportedUserEmail", user.getEmail() != null ? user.getEmail() : user.getUsername() + "@bnxmail.com");
+        caseData.put("reportedUserName", user.getFirstName() + " " + user.getLastName());
         caseData.put("reports", reportList);
         caseData.put("appeal", appealOpt.map(com.btctech.mailapp.entity.Appeal::getAppealMessage).orElse(null));
         
@@ -246,6 +250,66 @@ public class AdminService {
         });
     }
 
+    public Page<Map<String, Object>> getBannedUsers(Pageable pageable) {
+        Page<User> users = userRepository.findByActiveFalse(pageable);
+        
+        return users.map(user -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", user.getId());
+            
+            String displayEmail = user.getEmail() != null ? user.getEmail() : user.getUsername();
+            if (!displayEmail.contains("@")) {
+                displayEmail = displayEmail + "@bnxmail.com";
+            }
+            
+            map.put("email", displayEmail);
+            map.put("firstName", user.getFirstName());
+            map.put("lastName", user.getLastName());
+            map.put("accountType", user.getAccountType());
+            map.put("active", user.getActive());
+            map.put("createdAt", user.getCreatedAt());
+
+            List<com.btctech.mailapp.entity.Report> reports = reportRepository.findByReportedUserIdOrderByCreatedAtDesc(user.getId());
+            List<Map<String, Object>> reportList = reports.stream().map(r -> {
+                Map<String, Object> rMap = new HashMap<>();
+                rMap.put("reporterEmail", r.getReporter().getEmail() != null ? r.getReporter().getEmail() : r.getReporter().getUsername() + "@bnxmail.com");
+                rMap.put("reason", r.getReason());
+                rMap.put("emailSubject", r.getReportedEmailSubject());
+                rMap.put("date", r.getCreatedAt());
+                return rMap;
+            }).collect(java.util.stream.Collectors.toList());
+            map.put("reports", reportList);
+            map.put("reportCount", reports.size());
+
+            return map;
+        });
+    }
+
+    public Page<Map<String, Object>> getAllReports(Pageable pageable) {
+        Page<com.btctech.mailapp.entity.Report> reports = reportRepository.findAll(pageable);
+        
+        return reports.map(r -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", r.getId());
+            
+            // Reporter Details
+            map.put("reporterId", r.getReporter().getId());
+            map.put("reporterEmail", r.getReporter().getEmail() != null ? r.getReporter().getEmail() : r.getReporter().getUsername() + "@bnxmail.com");
+            
+            // Reported User Details
+            map.put("reportedUserId", r.getReportedUser().getId());
+            map.put("reportedUserEmail", r.getReportedUser().getEmail() != null ? r.getReportedUser().getEmail() : r.getReportedUser().getUsername() + "@bnxmail.com");
+            map.put("reportedUserActive", r.getReportedUser().getActive());
+            
+            // Report Details
+            map.put("reason", r.getReason());
+            map.put("emailSubject", r.getReportedEmailSubject());
+            map.put("date", r.getCreatedAt());
+            
+            return map;
+        });
+    }
+
     @Transactional(readOnly = true)
     public Page<Map<String, Object>> getAuditLogs(String query, Pageable pageable) {
         Page<ActivityLog> logs;
@@ -329,6 +393,25 @@ public class AdminService {
         logRecord.setUser(admin != null ? admin : user);
         logRecord.setActivity("Targeted Force Logout");
         logRecord.setDetails("Admin forced logout of user: " + email);
+        activityLogRepository.save(logRecord);
+    }
+
+    @Transactional
+    public void resetUserPassword(Long userId, String newPassword, String adminUsername) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        User admin = userRepository.findByUsername(adminUsername).orElse(null);
+
+        // Update password properly across all associated mail accounts
+        userService.updateUserPassword(user, newPassword);
+
+        // Invalidate all existing sessions so they have to log in with the new password
+        refreshTokenRepository.deleteByUser(user);
+        sessionService.deleteSessionsByUserId(user.getId());
+
+        ActivityLog logRecord = new ActivityLog();
+        logRecord.setUser(admin != null ? admin : user);
+        logRecord.setActivity("Password Reset by Admin");
+        logRecord.setDetails("Admin reset password for user: " + (user.getEmail() != null ? user.getEmail() : user.getUsername()));
         activityLogRepository.save(logRecord);
     }
 }

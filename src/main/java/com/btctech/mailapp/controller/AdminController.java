@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.security.Principal;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 import com.btctech.mailapp.service.AdminService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,24 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(users, "Users fetched successfully"));
     }
 
+    @GetMapping("/users/banned")
+    public ResponseEntity<ApiResponse<Page<Map<String, Object>>>> getBannedUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Map<String, Object>> bannedUsers = adminService.getBannedUsers(pageable);
+        return ResponseEntity.ok(ApiResponse.success(bannedUsers, "Banned users fetched successfully"));
+    }
+
+    @GetMapping("/reports")
+    public ResponseEntity<ApiResponse<Page<Map<String, Object>>>> getAllReports(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        Page<Map<String, Object>> reports = adminService.getAllReports(pageable);
+        return ResponseEntity.ok(ApiResponse.success(reports, "Reports fetched successfully"));
+    }
+
     @GetMapping("/audit-logs")
     public ResponseEntity<ApiResponse<Page<Map<String, Object>>>> getAuditLogs(
             @RequestParam(required = false) String query,
@@ -56,6 +76,17 @@ public class AdminController {
     public ResponseEntity<ApiResponse<String>> forceLogoutUser(@PathVariable Long id) {
         adminService.forceLogout(id);
         return ResponseEntity.ok(ApiResponse.success("Logout forced", "User sessions destroyed successfully"));
+    }
+
+    @PostMapping("/users/{id}/reset-password")
+    public ResponseEntity<ApiResponse<String>> resetUserPassword(@PathVariable Long id, @RequestBody Map<String, String> request, Principal principal) {
+        String newPassword = request.get("newPassword");
+        if (newPassword == null || newPassword.length() < 8 || !newPassword.matches(".*[A-Z].*") || !newPassword.matches(".*[a-z].*") || !newPassword.matches(".*[0-9].*")) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Password must be at least 8 characters long and contain uppercase, lowercase, and a number."));
+        }
+        String adminUsername = principal != null ? principal.getName() : "admin";
+        adminService.resetUserPassword(id, newPassword, adminUsername);
+        return ResponseEntity.ok(ApiResponse.success("Password reset", "User password has been reset successfully."));
     }
 
     @GetMapping("/cases/{id}")
