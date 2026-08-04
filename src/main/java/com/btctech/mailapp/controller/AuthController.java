@@ -118,7 +118,6 @@ public class AuthController {
      * Submit an appeal for a suspended account
      */
     @PostMapping("/appeal")
-    @Transactional
     public ResponseEntity<ApiResponse<String>> submitAppeal(@RequestBody Map<String, String> payload) {
         String email = payload.get("email");
         String message = payload.get("message");

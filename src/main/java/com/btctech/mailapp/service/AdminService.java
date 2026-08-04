@@ -362,8 +362,11 @@ public class AdminService {
     public void forceLogout(Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
         
-        // Delete all refresh tokens to kill sessions
-        refreshTokenRepository.deleteByUser(user);
+        // Mark all refresh tokens as revoked to kill sessions
+        refreshTokenRepository.findAllByUser(user).forEach(token -> {
+            token.setRevoked(true);
+            refreshTokenRepository.save(token);
+        });
         
         // Delete password sessions
         sessionService.deleteSessionsByUserId(user.getId());
@@ -382,8 +385,11 @@ public class AdminService {
             user = userRepository.findByUsername(email).orElseThrow(() -> new RuntimeException("User not found"));
         }
         
-        // Delete all refresh tokens to kill sessions
-        refreshTokenRepository.deleteByUser(user);
+        // Mark all refresh tokens as revoked to kill sessions
+        refreshTokenRepository.findAllByUser(user).forEach(token -> {
+            token.setRevoked(true);
+            refreshTokenRepository.save(token);
+        });
         
         // Delete password sessions
         sessionService.deleteSessionsByUserId(user.getId());

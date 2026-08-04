@@ -107,10 +107,10 @@ public class AuthService {
 
     @Transactional
     public void submitAppeal(String email, String message) {
-        MailAccount account = mailAccountRepository.findByEmail(email)
-            .orElseThrow(() -> new MailException("Account not found"));
-        User user = userRepository.findById(account.getUserId())
-            .orElseThrow(() -> new MailException("User not found"));
+        User user = userService.getUserByEmailOrUsername(email);
+        if (user == null) {
+            throw new MailException("User not found");
+        }
         
         com.btctech.mailapp.entity.Appeal appeal = new com.btctech.mailapp.entity.Appeal();
         appeal.setBannedUser(user);
@@ -339,6 +339,9 @@ public class AuthService {
     }
 
     private RefreshToken verifyExpiration(RefreshToken token) {
+        if (Boolean.FALSE.equals(token.getUser().getActive())) {
+            throw new com.btctech.mailapp.exception.MailSecurityException("Account suspended");
+        }
         if (token.isExpired() || token.isRevoked()) {
             refreshTokenRepository.delete(token);
             throw new MailException("Refresh token was expired or revoked. Please log in again.");

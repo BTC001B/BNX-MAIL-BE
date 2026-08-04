@@ -8,7 +8,6 @@ import lombok.Data;
 public class SendMailRequest {
 
     @NotBlank(message = "Recipient email is required")
-    @Email(message = "Invalid recipient email format")
     private String to;
 
     private String cc;

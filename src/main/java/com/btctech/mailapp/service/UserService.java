@@ -226,10 +226,6 @@ public class UserService {
             throw new MailException("Invalid credentials");
         }
 
-        if (!user.getActive()) {
-            throw new MailException("Account is disabled");
-        }
-
         boolean autoUpgraded = false;
 
         // AUTO-UPGRADE: CHILD to PUBLIC if 18+
