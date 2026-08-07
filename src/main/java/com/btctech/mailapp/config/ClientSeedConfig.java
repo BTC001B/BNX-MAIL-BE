@@ -93,6 +93,25 @@ public class ClientSeedConfig {
                     log.info("Test OAuth client seeded: beta_website");
                 }
             );
+
+            clientAppRepository.findByClientId("bit-tool").ifPresentOrElse(
+                client -> {
+                    log.info("Updating bit-tool OAuth client redirect URI...");
+                    client.setRedirectUri("https://www.bit-tool.com/auth,https://bit-tool.com/auth,http://localhost:5173/auth,http://localhost:5173/auth/");
+                    clientAppRepository.save(client);
+                },
+                () -> {
+                    log.info("Seeding bit-tool OAuth client...");
+                    ClientApp client = ClientApp.builder()
+                            .clientId("bit-tool")
+                            .clientSecret("secure-bit-tool-secret-2026")
+                            .appName("Bit Tool")
+                            .redirectUri("https://www.bit-tool.com/auth,https://bit-tool.com/auth,http://localhost:5173/auth,http://localhost:5173/auth/")
+                            .build();
+                    clientAppRepository.save(client);
+                    log.info("Test OAuth client seeded: bit-tool");
+                }
+            );
         };
     }
 }

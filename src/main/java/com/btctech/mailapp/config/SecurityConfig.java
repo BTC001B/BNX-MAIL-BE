@@ -91,7 +91,11 @@ public class SecurityConfig {
             "https://www.beta-softnet.com",
             "https://beta-softnet.com",
             "https://admin.bnxmail.com/",
-            "https://admin.bnxmail.com"
+            "https://admin.bnxmail.com",
+            "https://bit-tool.com/",
+            "https://bit-tool.com",
+            "https://www.bit-tool.com",
+            "https://www.bit-tool.com/"
     
         ));
 

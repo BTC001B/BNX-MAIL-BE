@@ -87,8 +87,11 @@ public class OAuthService {
         // 3. Remove code after single use
         codeStore.remove(code);
 
-        // 4. Generate a new long-lived token for the client app
-        return jwtUtil.generateToken(data.email);
+        // 4. Generate a new long-lived token for the client app with the app name included in the token payload
+        Map<String, Object> claims = new java.util.HashMap<>();
+        claims.put("app_name", client.getAppName());
+        
+        return jwtUtil.generateTokenWithClaims(claims, data.email);
     }
 
     private static record AuthCodeData(String clientId, String email, long expiry) {}
