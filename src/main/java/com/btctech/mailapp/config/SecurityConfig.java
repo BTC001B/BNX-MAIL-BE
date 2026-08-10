@@ -37,7 +37,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/register", "/api/auth/login/**", "/api/auth/refresh", "/api/auth/forgot-password/**", "/api/auth/reset-password", "/api/auth/username-suggestions", "/api/auth/child/**", "/api/auth/system-status", "/api/auth/appeal").permitAll()
                         .requestMatchers("/api/verification/status/**", "/api/verification/webhook").permitAll()
                         .requestMatchers("/api/oauth/token").permitAll() // ✅ Public token exchange
-                        .requestMatchers("/api/mail/public/send").permitAll() // ✅ Public email sending
+                        .requestMatchers("/api/mail/public/send", "/api/mail/send/schedule", "/api/mail/send/scheduled/**").permitAll() // ✅ Public email sending
                         .requestMatchers("/", "/index.html", "/error").permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
