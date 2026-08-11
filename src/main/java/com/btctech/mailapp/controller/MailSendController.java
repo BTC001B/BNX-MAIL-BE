@@ -253,8 +253,111 @@ public class MailSendController {
 
             return ResponseEntity.ok(ApiResponse.success(data, "Email scheduled successfully"));
         } catch (Exception e) {
-            log.error("Error scheduling email: {}", e.getMessage(), e);
+            log.error("Failed to schedule email: {}", e.getMessage(), e);
             return ResponseEntity.badRequest().body(ApiResponse.error("Failed to schedule email: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Public email schedule endpoint for external services (like Calendar App Reminders).
+     * Protected by a backend-to-backend API Token header "X-Public-Mail-Token".
+     * Sender is ALWAYS calendar@bnxmail.com
+     */
+    @PostMapping("/public/schedule")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> publicScheduleMail(
+            @Valid @RequestBody SendMailRequest request,
+            @RequestParam("sendAt") String sendAt,
+            @RequestHeader(value = "X-Public-Mail-Token", required = false) String apiToken) {
+
+        log.info("Public schedule mail request to {} at {}", request.getTo(), sendAt);
+        try {
+            // Verify public token
+            String expectedToken = "secure-beta-to-bnx-secret-2026";
+            if (apiToken == null || !apiToken.equals(expectedToken)) {
+                log.warn("✗ Unauthorized public schedule request: Invalid or missing X-Public-Mail-Token");
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Unauthorized: Invalid API Token"));
+            }
+
+            // Public schedule is ALWAYS on behalf of calendar@bnxmail.com
+            String fromEmail = "calendar@bnxmail.com";
+
+            // Parse ISO date string to LocalDateTime
+            java.time.ZonedDateTime zdt = java.time.ZonedDateTime.parse(sendAt);
+            java.time.LocalDateTime scheduledTime = zdt.toLocalDateTime();
+
+            if (scheduledTime.isBefore(java.time.LocalDateTime.now())) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Scheduled time must be in the future"));
+            }
+
+            String attachmentsJson = null;
+            if (request.getAttachments() != null && !request.getAttachments().isEmpty()) {
+                attachmentsJson = objectMapper.writeValueAsString(request.getAttachments());
+            }
+
+            com.btctech.mailapp.entity.ScheduledEmail scheduledEmail = com.btctech.mailapp.entity.ScheduledEmail.builder()
+                    .userEmail(fromEmail)
+                    .toRecipient(request.getTo())
+                    .cc(request.getCc())
+                    .bcc(request.getBcc())
+                    .subject(request.getSubject())
+                    .body(request.getBody())
+                    .fromName(request.getFromName() != null ? request.getFromName() : "BNX Calendar")
+                    .isHtml(request.getIsHtml())
+                    .attachmentsJson(attachmentsJson)
+                    .scheduledAt(scheduledTime)
+                    .processed(false)
+                    .createdAt(java.time.LocalDateTime.now())
+                    .build();
+
+            scheduledEmailRepository.save(scheduledEmail);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", scheduledEmail.getId());
+            data.put("scheduledAt", sendAt);
+            data.put("from", fromEmail);
+
+            return ResponseEntity.ok(ApiResponse.success(data, "Public email scheduled successfully"));
+        } catch (Exception e) {
+            log.error("Failed to schedule public email: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to schedule public email: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Public email schedule cancel endpoint for external services (like Calendar App Reminders).
+     * Protected by a backend-to-backend API Token header "X-Public-Mail-Token".
+     */
+    @DeleteMapping("/public/schedule/{id}")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> cancelPublicScheduledMail(
+            @PathVariable Long id,
+            @RequestHeader(value = "X-Public-Mail-Token", required = false) String apiToken) {
+        
+        try {
+            // Verify public token
+            String expectedToken = "secure-beta-to-bnx-secret-2026";
+            if (apiToken == null || !apiToken.equals(expectedToken)) {
+                log.warn("✗ Unauthorized public schedule cancel request: Invalid or missing X-Public-Mail-Token");
+                return ResponseEntity.status(401)
+                        .body(ApiResponse.error("Unauthorized: Invalid API Token"));
+            }
+
+            String fromEmail = "calendar@bnxmail.com";
+            com.btctech.mailapp.entity.ScheduledEmail scheduledEmail = scheduledEmailRepository.findByIdAndUserEmail(id, fromEmail).orElse(null);
+
+            if (scheduledEmail == null) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Scheduled email not found"));
+            }
+
+            scheduledEmailRepository.delete(scheduledEmail);
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", id);
+
+            return ResponseEntity.ok(ApiResponse.success(data, "Public scheduled email cancelled successfully"));
+        } catch (Exception e) {
+            log.error("Error cancelling public scheduled email: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error("Failed to cancel public scheduled email: " + e.getMessage()));
         }
     }
 

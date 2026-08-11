@@ -80,8 +80,13 @@ public class ScheduledMailScheduler {
         }
 
         if (password == null) {
-            log.warn("Cannot send scheduled email for {}: No password source found.", fromEmail);
-            return;
+            if (fromEmail.equals("calendar@bnxmail.com") || fromEmail.equals("beta@bnxmail.com")) {
+                log.info("Bypassing password requirement for public scheduled email account: {}", fromEmail);
+                // mailSendService handles null passwords safely for these public accounts
+            } else {
+                log.warn("Cannot send scheduled email for {}: No password source found.", fromEmail);
+                return;
+            }
         }
 
         // 3. Build SendMailRequest
