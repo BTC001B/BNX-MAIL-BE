@@ -2,6 +2,7 @@ package com.btctech.mailapp.dto;
 
 import lombok.Builder;
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -16,6 +17,9 @@ public class LoginResponseData {
     private String role;
     private String accountType;
     private Boolean isPrimary;
+
+    @JsonProperty("app_name")
+    private String appName;
 
     private String accessToken;
     private String refreshToken;

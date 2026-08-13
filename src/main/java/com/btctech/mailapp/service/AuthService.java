@@ -388,6 +388,7 @@ public class AuthService {
                 .role(user.getRole())
                 .accountType(user.getAccountType().name())
                 .isPrimary(user.getIsPrimary())
+                .appName("BNX Mail")
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
                 .accessTokenExpiresIn(jwtUtil.getExpirationSeconds(accessToken))

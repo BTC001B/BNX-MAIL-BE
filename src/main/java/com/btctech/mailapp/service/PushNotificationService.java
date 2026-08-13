@@ -5,6 +5,8 @@ import com.btctech.mailapp.repository.UserDeviceRepository;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
+import com.google.firebase.messaging.AndroidConfig;
+import com.google.firebase.messaging.AndroidNotification;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -38,14 +40,24 @@ public class PushNotificationService {
             for (UserDevice device : devices) {
                 try {
                     Notification notification = Notification.builder()
-                            .setTitle("New email from " + (senderName != null ? senderName : "Unknown"))
+                            .setTitle(senderName != null ? senderName : "Unknown")
                             .setBody(subject != null ? subject : "No subject")
+                            .build();
+
+                    AndroidConfig androidConfig = AndroidConfig.builder()
+                            .setPriority(AndroidConfig.Priority.HIGH)
+                            .setNotification(AndroidNotification.builder()
+                                    .setChannelId("bnx_mail_new_email")
+                                    .build())
                             .build();
 
                     Message message = Message.builder()
                             .setToken(device.getDeviceToken())
                             .setNotification(notification)
-                            .putData("type", "NEW_EMAIL")
+                            .putData("type", "new_email")
+                            .putData("emailId", "0") // Update if a specific email ID is passed via webhook
+                            .putData("accountEmail", userEmail)
+                            .setAndroidConfig(androidConfig)
                             .build();
 
                     String response = FirebaseMessaging.getInstance().send(message);

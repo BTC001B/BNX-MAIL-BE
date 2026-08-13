@@ -59,15 +59,22 @@ public class JwtUtil {
     }
 
     public String generateTokenWithClaims(Map<String, Object> claims, String username) {
+        if (!claims.containsKey("app_name")) {
+            claims.put("app_name", "BNX Mail");
+        }
         return generateToken(claims, username, jwtExpiration);
     }
 
     public String generateToken(String username) {
-        return generateToken(new HashMap<>(), username, jwtExpiration);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("app_name", "BNX Mail");
+        return generateToken(claims, username, jwtExpiration);
     }
 
     public String generateRefreshToken(String username) {
-        return generateToken(new HashMap<>(), username, refreshExpiration);
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("app_name", "BNX Mail");
+        return generateToken(claims, username, refreshExpiration);
     }
 
     private String generateToken(Map<String, Object> claims, String subject, long expirationDuration) {
