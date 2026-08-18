@@ -84,6 +84,55 @@ public class MailReceiveController {
         }
     }
 
+    /**
+     * Get unread emails
+     */
+    @GetMapping("/unread")
+    public ResponseEntity<ApiResponse<InboxResponse>> getUnread(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestHeader("Authorization") String authHeader,
+            Authentication authentication) {
+
+        try {
+            String email = authentication.getName();
+            log.info("Get unread emails request from: {}", email);
+
+            // Get password from session
+            String token = authHeader.substring(7);
+            String password = sessionService.getPasswordFromSession(token);
+
+            if (password == null) {
+                return ResponseEntity.badRequest()
+                        .body(ApiResponse.error("Session expired. Please login again."));
+            }
+
+            // Fetch emails
+            com.btctech.mailapp.dto.FolderResult result = mailReceiveService.getUnreadEmails(email, password, page, limit);
+            List<EmailDTO> emails = result.getEmails() != null ? result.getEmails() : new java.util.ArrayList<>();
+            int totalCount = result.getTotalCount();
+
+            // Build response
+            InboxResponse response = InboxResponse.builder()
+                    .email(email)
+                    .totalCount(totalCount)
+                    .unreadCount(totalCount)
+                    .emails(emails)
+                    .build();
+
+            log.info("✓ Fetched {} unread emails for {}", emails.size(), email);
+
+            return ResponseEntity.ok(
+                    ApiResponse.success(response, "Unread emails fetched successfully"));
+
+        } catch (Throwable e) {
+            String userEmail = (authentication != null) ? authentication.getName() : "Unknown User";
+            log.error("CRITICAL error fetching unread emails for {}: {}", userEmail, e.getMessage(), e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("Failed to fetch unread emails: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/analytics")
     public ResponseEntity<ApiResponse<com.btctech.mailapp.dto.AnalyticsDTO>> getAnalytics(
             @RequestParam(required = false) String timezone,

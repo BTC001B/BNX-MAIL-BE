@@ -892,6 +892,94 @@ public class MailReceiveService {
         }
     }
 
+    public FolderResult getUnreadEmails(String email, String password, int page, int limit) {
+        log.info("Fetching unread messages from INBOX for: {}", email);
+
+        Store store = null;
+        Folder folder = null;
+
+        try {
+            store = connect(email, password);
+            folder = store.getFolder("INBOX");
+            
+            if (!folder.exists()) {
+                log.warn("⚠ INBOX folder missing for user {}. Returning empty list.", email);
+                return new FolderResult(new ArrayList<>(), 0);
+            }
+            
+            folder.open(Folder.READ_ONLY);
+            log.info("Successfully opened INBOX for unread. Message count: {}", folder.getMessageCount());
+
+            UIDFolder uidFolder = (folder instanceof UIDFolder) ? (UIDFolder) folder : null;
+
+            List<String> blockedEmails = blockedSenderRepository.findByUserEmail(email).stream()
+                    .map(BlockedSender::getBlockedEmail)
+                    .map(String::toLowerCase)
+                    .toList();
+
+            // Search for unseen messages
+            jakarta.mail.search.SearchTerm searchFlag = new jakarta.mail.search.FlagTerm(new Flags(Flags.Flag.SEEN), false);
+            Message[] messages = folder.search(searchFlag);
+
+            if (messages == null || messages.length == 0) {
+                return new FolderResult(new ArrayList<>(), 0);
+            }
+
+            // Filter out blocked senders and Colab messages
+            List<Message> filteredMessages = new ArrayList<>();
+            for (Message msg : messages) {
+                try {
+                    String subject = msg.getSubject();
+                    if (subject != null && subject.toLowerCase().contains("[colab#")) {
+                        continue;
+                    }
+                    if (!blockedEmails.isEmpty()) {
+                        Address[] from = msg.getFrom();
+                        if (from != null && from.length > 0) {
+                            String cleanFrom = extractEmailAddress(from[0].toString());
+                            if (cleanFrom != null && blockedEmails.contains(cleanFrom.toLowerCase())) {
+                                continue;
+                            }
+                        }
+                    }
+                    filteredMessages.add(msg);
+                } catch (Exception e) {
+                    log.warn("Failed to check message for unread filter: {}", e.getMessage());
+                }
+            }
+
+            int totalCount = filteredMessages.size();
+            if (totalCount == 0) {
+                return new FolderResult(new ArrayList<>(), 0);
+            }
+
+            // Sort: newer first (search results are normally older first).
+            // Calculate paginated sub-list bounds
+            int endIndex = totalCount - (page - 1) * limit;
+            int startIndex = Math.max(0, endIndex - limit);
+
+            List<EmailDTO> emails = new ArrayList<>();
+            if (endIndex > 0) {
+                for (int i = endIndex - 1; i >= startIndex; i--) {
+                    try {
+                        Message msg = filteredMessages.get(i);
+                        emails.add(convertToDTO(msg, uidFolder, email));
+                    } catch (Exception e) {
+                        log.warn("Failed to convert unread message to DTO: {}", e.getMessage());
+                    }
+                }
+            }
+
+            return new FolderResult(emails, totalCount);
+
+        } catch (MessagingException e) {
+            log.error("Failed to fetch unread emails: {}", e.getMessage(), e);
+            throw new MailException("Failed to fetch unread emails: " + e.getMessage());
+        } finally {
+            cleanup(store, folder);
+        }
+    }
+
     public EmailDTO getEmail(String email, String password, String uid) {
         log.info("Fetching single email details for UID: {}", uid);
         Store store = null;
