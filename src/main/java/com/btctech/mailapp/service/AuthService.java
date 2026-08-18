@@ -529,6 +529,9 @@ public class AuthService {
                         .loggedInAt(session.getLoggedInAt())
                         .ipAddress(session.getIpAddress())
                         .userAgent(session.getUserAgent())
+                        .location(session.getLocation())
+                        .latitude(session.getLatitude())
+                        .longitude(session.getLongitude())
                         .build())
                 .collect(Collectors.toList());
     }

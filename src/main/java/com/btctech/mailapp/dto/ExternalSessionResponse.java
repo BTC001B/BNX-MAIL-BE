@@ -13,4 +13,7 @@ public class ExternalSessionResponse {
     private LocalDateTime loggedInAt;
     private String ipAddress;
     private String userAgent;
+    private String location;
+    private String latitude;
+    private String longitude;
 }
