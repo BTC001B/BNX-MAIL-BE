@@ -76,11 +76,43 @@ public class OAuthService {
                         .orElseThrow(() -> new RuntimeException("User not found")));
 
         // 2. Record SSO Session
+        String location = null;
+        String lat = null;
+        String lon = null;
+        try {
+            if (ipAddress != null && !ipAddress.equals("127.0.0.1") && !ipAddress.equals("0:0:0:0:0:0:0:1") && !ipAddress.startsWith("192.168.")) {
+                java.net.URL url = new java.net.URL("http://ip-api.com/line/" + ipAddress);
+                java.net.HttpURLConnection con = (java.net.HttpURLConnection) url.openConnection();
+                con.setRequestMethod("GET");
+                con.setConnectTimeout(2000);
+                con.setReadTimeout(2000);
+
+                java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(con.getInputStream()));
+                java.util.List<String> lines = new java.util.ArrayList<>();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    lines.add(line);
+                }
+                in.close();
+
+                if (lines.size() >= 14 && "success".equals(lines.get(0))) {
+                    location = lines.get(5) + ", " + lines.get(4) + ", " + lines.get(2);
+                    lat = lines.get(7);
+                    lon = lines.get(8);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to fetch location for IP: " + ipAddress);
+        }
+
         com.btctech.mailapp.entity.ExternalAppSession session = com.btctech.mailapp.entity.ExternalAppSession.builder()
                 .user(user)
                 .clientApp(client)
                 .ipAddress(ipAddress)
                 .userAgent(userAgent)
+                .location(location)
+                .latitude(lat)
+                .longitude(lon)
                 .build();
         externalAppSessionRepository.save(session);
 

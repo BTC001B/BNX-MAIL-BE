@@ -34,8 +34,17 @@ public class ExternalAppSession {
     @Column(name = "user_agent")
     private String userAgent;
 
+    @Column(name = "location")
+    private String location;
+
+    @Column(name = "latitude")
+    private String latitude;
+
+    @Column(name = "longitude")
+    private String longitude;
+
     @PrePersist
     protected void onCreate() {
-        loggedInAt = LocalDateTime.now();
+        loggedInAt = LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata"));
     }
 }
