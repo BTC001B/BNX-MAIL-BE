@@ -41,13 +41,67 @@ public class SessionService {
             // Encrypt password
             String encryptedPassword = encrypt(password);
             
+            // Extract request details (IP, User Agent)
+            String ipAddress = null;
+            String userAgent = null;
+            String location = null;
+            try {
+                org.springframework.web.context.request.ServletRequestAttributes attributes = 
+                    (org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+                if (attributes != null) {
+                    jakarta.servlet.http.HttpServletRequest request = attributes.getRequest();
+                    ipAddress = request.getHeader("X-Forwarded-For");
+                    if (ipAddress == null || ipAddress.isEmpty()) {
+                        ipAddress = request.getRemoteAddr();
+                    } else {
+                        ipAddress = ipAddress.split(",")[0].trim();
+                    }
+                    userAgent = request.getHeader("User-Agent");
+                }
+            } catch (Exception e) {
+                log.warn("Could not extract request attributes: {}", e.getMessage());
+            }
+
+            // Fetch location if IP is available
+            if (ipAddress != null && !ipAddress.equals("127.0.0.1") && !ipAddress.equals("0:0:0:0:0:0:0:1") && !ipAddress.startsWith("192.168.")) {
+                try {
+                    java.net.URL url = new java.net.URL("http://ip-api.com/line/" + ipAddress);
+                    java.net.HttpURLConnection con = (java.net.HttpURLConnection) url.openConnection();
+                    con.setRequestMethod("GET");
+                    con.setConnectTimeout(2000);
+                    con.setReadTimeout(2000);
+                    
+                    java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(con.getInputStream()));
+                    java.util.List<String> lines = new java.util.ArrayList<>();
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        lines.add(line);
+                    }
+                    in.close();
+                    
+                    if (lines.size() >= 14 && "success".equals(lines.get(0))) {
+                        location = lines.get(5) + ", " + lines.get(4) + ", " + lines.get(2);
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to fetch location for IP: " + ipAddress);
+                }
+            }
+
+            java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
+            LocalDateTime now = java.time.ZonedDateTime.now(istZone).toLocalDateTime();
+
             // Create new session
             UserSession session = new UserSession();
             session.setUserId(userId);
             session.setMailAccountId(mailAccountId);
             session.setEncryptedPassword(encryptedPassword);
             session.setJwtToken(jwtToken);
-            session.setExpiresAt(LocalDateTime.now().plusDays(30)); // 30 days
+            session.setIpAddress(ipAddress);
+            session.setDeviceName(userAgent);
+            session.setLocation(location);
+            session.setCreatedAt(now);
+            session.setLastActiveAt(now);
+            session.setExpiresAt(now.plusDays(30)); // 30 days
             
             session = sessionRepository.save(session);
             log.info("Created session for user: {} (mail_account: {})", userId, mailAccountId);
