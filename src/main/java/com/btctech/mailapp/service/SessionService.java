@@ -30,7 +30,7 @@ public class SessionService {
      */
     @Transactional
     public UserSession createSession(Long userId, Long mailAccountId, 
-                                     String password, String jwtToken, Long refreshTokenId) {
+                                     String password, String jwtToken) {
         try {
             // Check if session already exists for this token
             sessionRepository.findByJwtToken(jwtToken).ifPresent(existing -> {
@@ -99,7 +99,6 @@ public class SessionService {
             session.setIpAddress(ipAddress);
             session.setDeviceName(userAgent);
             session.setLocation(location);
-            session.setRefreshTokenId(refreshTokenId);
             session.setCreatedAt(now);
             session.setLastActiveAt(now);
             session.setExpiresAt(now.plusDays(30)); // 30 days
@@ -201,32 +200,6 @@ public class SessionService {
     public void deleteSessionsByUserId(Long userId) {
         sessionRepository.deleteByUserId(userId);
         log.info("Deleted all sessions for user: {}", userId);
-    }
-
-    public java.util.List<com.btctech.mailapp.dto.SessionResponse> getUserSessions(Long userId, String ipAddress, String userAgent) {
-        return sessionRepository.findByUserId(userId).stream()
-                .map(session -> com.btctech.mailapp.dto.SessionResponse.builder()
-                        .id(session.getId())
-                        .ipAddress(session.getIpAddress())
-                        .userAgent(session.getDeviceName())
-                        .location(session.getLocation())
-                        .createdAt(session.getCreatedAt() != null ? session.getCreatedAt().atZone(java.time.ZoneId.of("Asia/Kolkata")).toInstant() : java.time.Instant.now())
-                        .expiresAt(session.getExpiresAt() != null ? session.getExpiresAt().atZone(java.time.ZoneId.of("Asia/Kolkata")).toInstant() : java.time.Instant.now())
-                        .isCurrentSession(
-                            (ipAddress != null && ipAddress.equals(session.getIpAddress())) &&
-                            (userAgent != null && userAgent.equals(session.getDeviceName()))
-                        )
-                        .build())
-                .collect(java.util.stream.Collectors.toList());
-    }
-
-    public Long deleteSession(Long sessionId) {
-        return sessionRepository.findById(sessionId).map(session -> {
-            Long refreshTokenId = session.getRefreshTokenId();
-            sessionRepository.delete(session);
-            log.info("Deleted user_session: {}", sessionId);
-            return refreshTokenId;
-        }).orElse(null);
     }
     
     /**

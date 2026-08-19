@@ -255,7 +255,7 @@ public class AuthService {
     /**
      * Create and persist a refresh token with metadata
      */
-    public RefreshToken createRefreshToken(User user, String ipAddress, String userAgent) {
+    public String createRefreshToken(User user, String ipAddress, String userAgent) {
         // Build the actual JWT for refresh
         String tokenStr = jwtUtil.generateRefreshToken(user.getEmail() != null ? user.getEmail() : user.getUsername());
         
@@ -294,7 +294,8 @@ public class AuthService {
                 .expiryDate(Instant.now().plusMillis(604800000)) // 7 days
                 .build();
 
-        return refreshTokenRepository.save(refreshToken);
+        refreshTokenRepository.save(refreshToken);
+        return tokenStr;
     }
 
     /**
@@ -344,8 +345,8 @@ public class AuthService {
 
         return refreshTokenRepository.findByToken(requestRefreshToken)
                 .map(this::verifyExpiration)
-                .map(token -> {
-                    User user = token.getUser();
+                .map(RefreshToken::getUser)
+                .map(user -> {
                     String accessToken = jwtUtil.generateToken(user.getEmail());
                     
                     // ✅ FIX: Migrate password session to new access token
@@ -353,7 +354,7 @@ public class AuthService {
                         String password = sessionService.getPasswordByUserId(user.getId());
                         if (password != null) {
                             MailAccount primaryAccount = mailboxService.getPrimaryEmail(user.getId());
-                            sessionService.createSession(user.getId(), primaryAccount.getId(), password, accessToken, token.getId());
+                            sessionService.createSession(user.getId(), primaryAccount.getId(), password, accessToken);
                             log.info("✓ Migrated session to new access token for user: {}", user.getUsername());
                         }
                     } catch (Exception e) {
