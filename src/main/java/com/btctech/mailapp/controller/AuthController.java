@@ -176,10 +176,7 @@ public class AuthController {
             ipAddress = ipAddress.split(",")[0].trim();
         }
 
-        String userAgent = httpRequest.getHeader("X-Device-Name");
-        if (userAgent == null || userAgent.isEmpty()) {
-            userAgent = httpRequest.getHeader("User-Agent");
-        }
+        String userAgent = httpRequest.getHeader("User-Agent");
 
         // 3. Check for 2FA
         if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
