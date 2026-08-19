@@ -10,6 +10,7 @@ public class SessionResponse {
     private Long id;
     private String ipAddress;
     private String userAgent;
+    private String location;
     private Instant createdAt;
     private Instant expiresAt;
     private boolean isCurrentSession;

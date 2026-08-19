@@ -255,20 +255,46 @@ public class AuthService {
     /**
      * Create and persist a refresh token with metadata
      */
-    public String createRefreshToken(User user, String ipAddress, String userAgent) {
+    public RefreshToken createRefreshToken(User user, String ipAddress, String userAgent) {
         // Build the actual JWT for refresh
         String tokenStr = jwtUtil.generateRefreshToken(user.getEmail() != null ? user.getEmail() : user.getUsername());
         
+        // Fetch location
+        String location = null;
+        if (ipAddress != null && !ipAddress.equals("127.0.0.1") && !ipAddress.equals("0:0:0:0:0:0:0:1") && !ipAddress.startsWith("192.168.")) {
+            try {
+                java.net.URL url = new java.net.URL("http://ip-api.com/line/" + ipAddress);
+                java.net.HttpURLConnection con = (java.net.HttpURLConnection) url.openConnection();
+                con.setRequestMethod("GET");
+                con.setConnectTimeout(2000);
+                con.setReadTimeout(2000);
+                
+                java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(con.getInputStream()));
+                java.util.List<String> lines = new java.util.ArrayList<>();
+                String line;
+                while ((line = in.readLine()) != null) {
+                    lines.add(line);
+                }
+                in.close();
+                
+                if (lines.size() >= 14 && "success".equals(lines.get(0))) {
+                    location = lines.get(5) + ", " + lines.get(4) + ", " + lines.get(2);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch location for IP: " + ipAddress);
+            }
+        }
+
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
                 .token(tokenStr)
                 .ipAddress(ipAddress)
                 .userAgent(userAgent)
+                .location(location)
                 .expiryDate(Instant.now().plusMillis(604800000)) // 7 days
                 .build();
 
-        refreshTokenRepository.save(refreshToken);
-        return tokenStr;
+        return refreshTokenRepository.save(refreshToken);
     }
 
     /**
@@ -281,6 +307,7 @@ public class AuthService {
                         .id(token.getId())
                         .ipAddress(token.getIpAddress())
                         .userAgent(token.getUserAgent())
+                        .location(token.getLocation())
                         .createdAt(token.getCreatedAt())
                         .expiresAt(token.getExpiryDate())
                         .isCurrentSession(
@@ -317,8 +344,8 @@ public class AuthService {
 
         return refreshTokenRepository.findByToken(requestRefreshToken)
                 .map(this::verifyExpiration)
-                .map(RefreshToken::getUser)
-                .map(user -> {
+                .map(token -> {
+                    User user = token.getUser();
                     String accessToken = jwtUtil.generateToken(user.getEmail());
                     
                     // ✅ FIX: Migrate password session to new access token
@@ -326,7 +353,7 @@ public class AuthService {
                         String password = sessionService.getPasswordByUserId(user.getId());
                         if (password != null) {
                             MailAccount primaryAccount = mailboxService.getPrimaryEmail(user.getId());
-                            sessionService.createSession(user.getId(), primaryAccount.getId(), password, accessToken);
+                            sessionService.createSession(user.getId(), primaryAccount.getId(), password, accessToken, token.getId());
                             log.info("✓ Migrated session to new access token for user: {}", user.getUsername());
                         }
                     } catch (Exception e) {

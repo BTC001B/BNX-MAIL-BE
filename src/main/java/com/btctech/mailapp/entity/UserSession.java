@@ -41,4 +41,7 @@ public class UserSession {
     
     @Column(name = "last_active_at")
     private LocalDateTime lastActiveAt = LocalDateTime.now();
+    
+    @Column(name = "refresh_token_id")
+    private Long refreshTokenId;
 }

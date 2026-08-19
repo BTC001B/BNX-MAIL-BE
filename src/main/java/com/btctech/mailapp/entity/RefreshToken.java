@@ -31,6 +31,9 @@ public class RefreshToken {
     @Column(name = "user_agent")
     private String userAgent;
 
+    @Column(name = "location")
+    private String location;
+
     @Column(nullable = false)
     private Instant expiryDate;
 

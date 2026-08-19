@@ -200,14 +200,14 @@ public class AuthController {
 
         // 4. Generate Dual Tokens
         String accessToken = jwtUtil.generateToken(request.getEmail());
-        String refreshToken = authService.createRefreshToken(user, ipAddress, userAgent);
+        com.btctech.mailapp.entity.RefreshToken refreshToken = authService.createRefreshToken(user, ipAddress, userAgent);
 
         // 5. Get primary mail account for session
         MailAccount mailAccount = mailboxService.getMailAccountByEmail(request.getEmail());
 
         // 6. Create session (store password linked to accessToken)
         sessionService.createSession(user.getId(), mailAccount.getId(),
-                request.getPassword(), accessToken);
+                request.getPassword(), accessToken, refreshToken.getId());
 
         // 7. BACKFILL: Ensure MailAccount has an encrypted_password for Always-On sending
         if (mailAccount.getEncryptedPassword() == null) {
@@ -221,7 +221,7 @@ public class AuthController {
         }
 
         // 7. Build Rich SaaS Response
-        com.btctech.mailapp.dto.LoginResponseData data = authService.buildLoginResponse(user, result.isAutoUpgraded(), accessToken, refreshToken);
+        com.btctech.mailapp.dto.LoginResponseData data = authService.buildLoginResponse(user, result.isAutoUpgraded(), accessToken, refreshToken.getToken());
 
         return ResponseEntity.ok(
                 ApiResponse.success(data, "Login successful"));
@@ -248,7 +248,8 @@ public class AuthController {
             String userAgent = httpRequest.getHeader("User-Agent");
             
             String accessToken = jwtUtil.generateToken(email);
-            String refreshToken = authService.createRefreshToken(user, ipAddress, userAgent);
+            com.btctech.mailapp.entity.RefreshToken refreshTokenObj = authService.createRefreshToken(user, ipAddress, userAgent);
+            String refreshToken = refreshTokenObj.getToken();
             
             try {
                 // Recover the password from the tempToken claims
@@ -259,7 +260,7 @@ public class AuthController {
                     // Get primary mail account for session
                     MailAccount mailAccount = mailboxService.getMailAccountByEmail(email);
                     // Create session (store password linked to accessToken)
-                    sessionService.createSession(user.getId(), mailAccount.getId(), password, accessToken);
+                    sessionService.createSession(user.getId(), mailAccount.getId(), password, accessToken, refreshTokenObj.getId());
                 }
             } catch (Exception e) {
                 log.error("Failed to recover password from 2FA token: {}", e.getMessage());
@@ -298,6 +299,32 @@ public class AuthController {
         return ResponseEntity.ok(
                 ApiResponse.success(sessions, "Sessions retrieved successfully"));
     }
+    /**
+     * Get all active sessions for current user from user_sessions table
+     */
+    @GetMapping("/user-sessions")
+    public ResponseEntity<ApiResponse<java.util.List<com.btctech.mailapp.dto.SessionResponse>>> getUserSessions(
+            @RequestHeader("Authorization") String authHeader,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        
+        String token = authHeader.substring(7);
+        String email = jwtUtil.extractEmail(token);
+        User user = userService.getUserByEmail(email);
+
+        String ipAddress = httpRequest.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            ipAddress = httpRequest.getRemoteAddr();
+        } else {
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+        String userAgent = httpRequest.getHeader("User-Agent");
+
+        log.info("Fetching user_sessions for user: {}", user.getUsername());
+        java.util.List<com.btctech.mailapp.dto.SessionResponse> sessions = sessionService.getUserSessions(user.getId(), ipAddress, userAgent);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(sessions, "User Sessions retrieved successfully"));
+    }
 
     /**
      * Remotely revoke a specific session
@@ -312,7 +339,17 @@ public class AuthController {
         User user = userService.getUserByEmail(email);
 
         log.info("Revoking session {} for user {}", sessionId, user.getUsername());
-        authService.revokeSession(sessionId, user);
+        Long refreshTokenId = sessionService.deleteSession(sessionId);
+        if (refreshTokenId != null) {
+            authService.revokeSession(refreshTokenId, user);
+        } else {
+            // Fallback in case it's actually a refresh token ID (legacy compatibility)
+            try {
+                authService.revokeSession(sessionId, user);
+            } catch (Exception e) {
+                log.warn("Failed to revoke session: {}", e.getMessage());
+            }
+        }
 
         return ResponseEntity.ok(
                 ApiResponse.success(null, "Session revoked successfully"));
@@ -550,7 +587,8 @@ public class AuthController {
 
             // Generate Dual Tokens
             String accessToken = jwtUtil.generateToken(email);
-            String refreshToken = authService.createRefreshToken(user, ipAddress, userAgent);
+            com.btctech.mailapp.entity.RefreshToken refreshTokenObj = authService.createRefreshToken(user, ipAddress, userAgent);
+            String refreshToken = refreshTokenObj.getToken();
 
             // Create session
             MailAccount mailAccount = mailboxService.getMailAccountByEmail(email);
@@ -562,7 +600,7 @@ public class AuthController {
             }
             
             if (password != null) {
-                sessionService.createSession(user.getId(), mailAccount.getId(), password, accessToken);
+                sessionService.createSession(user.getId(), mailAccount.getId(), password, accessToken, refreshTokenObj.getId());
             }
 
             LoginResponseData data = authService.buildLoginResponse(user, false, accessToken, refreshToken);
