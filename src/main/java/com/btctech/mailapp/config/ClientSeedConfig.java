@@ -112,6 +112,25 @@ public class ClientSeedConfig {
                     log.info("Test OAuth client seeded: bit-tool");
                 }
             );
+
+            clientAppRepository.findByClientId("account-ui").ifPresentOrElse(
+                client -> {
+                    log.info("Updating account-ui OAuth client redirect URI...");
+                    client.setRedirectUri("https://account.beta-softnet.com,https://www.account.beta-softnet.com,http://localhost:5173,http://localhost:5173/,http://localhost:3000,http://localhost:3000/,http://localhost:3001,http://localhost:3001/");
+                    clientAppRepository.save(client);
+                },
+                () -> {
+                    log.info("Seeding account-ui OAuth client...");
+                    ClientApp client = ClientApp.builder()
+                            .clientId("account-ui")
+                            .clientSecret("secure-account-secret-2026")
+                            .appName("Account Settings")
+                            .redirectUri("https://account.beta-softnet.com,https://www.account.beta-softnet.com,http://localhost:5173,http://localhost:5173/,http://localhost:3000,http://localhost:3000/,http://localhost:3001,http://localhost:3001/")
+                            .build();
+                    clientAppRepository.save(client);
+                    log.info("Test OAuth client seeded: account-ui");
+                }
+            );
         };
     }
 }
