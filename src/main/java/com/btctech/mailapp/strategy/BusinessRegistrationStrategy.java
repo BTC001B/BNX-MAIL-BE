@@ -25,6 +25,18 @@ public class BusinessRegistrationStrategy implements RegistrationStrategy {
     @Override
     @Transactional
     public User register(RegisterRequest request) {
+        String username = request.getUsername();
+        if (username == null || username.length() < 10) {
+            throw new com.btctech.mailapp.exception.MailException("Business username must be at least 10 characters long");
+        }
+
+        long letters = username.chars().filter(Character::isLetter).count();
+        long digits = username.chars().filter(Character::isDigit).count();
+
+        if (letters < 7 || digits < 3) {
+            throw new com.btctech.mailapp.exception.MailException("Business username must contain at least 7 letters and 3 numbers");
+        }
+
         // 1. Determine Domain and Get/Create Organization
         String domain = request.getDomain();
         if (domain == null || domain.trim().isEmpty()) {
