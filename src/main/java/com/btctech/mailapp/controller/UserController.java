@@ -31,7 +31,7 @@ public class UserController {
     private final com.btctech.mailapp.repository.MailAccountRepository mailAccountRepository;
     private final JwtUtil jwtUtil;
     private final com.btctech.mailapp.repository.BusinessProfileRepository businessProfileRepository;
-
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getCurrentUser(
             @RequestHeader("Authorization") String authHeader) {
@@ -82,6 +82,18 @@ public class UserController {
         data.put("updatedAt", user.getUpdatedAt());
         data.put("lastLogin", user.getLastLogin());
         data.put("twoFactorEnabled", user.getTwoFactorEnabled());
+        
+        if (Boolean.TRUE.equals(user.getIsSubId()) && user.getParent() != null) {
+            data.put("isSubId", true);
+            String parentEmail = user.getParent().getEmail();
+            if (parentEmail == null || !parentEmail.contains("@")) {
+                parentEmail = user.getParent().getUsername() + "@bnxmail.com";
+            }
+            data.put("parentAccount", parentEmail);
+        } else {
+            data.put("isSubId", false);
+        }
+        
         boolean onboarded = true;
         if (user.getAccountType() == com.btctech.mailapp.entity.AccountType.BUSINESS) {
             onboarded = businessProfileRepository.findByUserId(user.getId())

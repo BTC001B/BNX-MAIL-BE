@@ -123,6 +123,15 @@ public class OAuthService {
         Map<String, Object> claims = new java.util.HashMap<>();
         claims.put("app_name", client.getAppName());
         
+        if (Boolean.TRUE.equals(user.getIsSubId()) && user.getParent() != null) {
+            claims.put("is_sub_id", true);
+            String parentEmail = user.getParent().getEmail();
+            if (parentEmail == null || !parentEmail.contains("@")) {
+                parentEmail = user.getParent().getUsername() + "@bnxmail.com";
+            }
+            claims.put("parent_account", parentEmail);
+        }
+        
         return jwtUtil.generateTokenWithClaims(claims, data.email);
     }
 
