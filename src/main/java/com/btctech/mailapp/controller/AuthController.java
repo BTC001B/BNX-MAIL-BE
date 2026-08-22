@@ -196,7 +196,7 @@ public class AuthController {
         }
 
         // 4. Generate Dual Tokens
-        String accessToken = jwtUtil.generateToken(request.getEmail());
+        String accessToken = jwtUtil.generateTokenForUser(user, request.getEmail());
         String refreshToken = authService.createRefreshToken(user, ipAddress, userAgent);
 
         // 5. Get primary mail account for session
@@ -244,7 +244,7 @@ public class AuthController {
             }
             String userAgent = httpRequest.getHeader("User-Agent");
             
-            String accessToken = jwtUtil.generateToken(email);
+            String accessToken = jwtUtil.generateTokenForUser(user, email);
             String refreshToken = authService.createRefreshToken(user, ipAddress, userAgent);
             
             try {
@@ -546,7 +546,7 @@ public class AuthController {
             String userAgent = httpRequest.getHeader("User-Agent");
 
             // Generate Dual Tokens
-            String accessToken = jwtUtil.generateToken(email);
+            String accessToken = jwtUtil.generateTokenForUser(user, email);
             String refreshToken = authService.createRefreshToken(user, ipAddress, userAgent);
 
             // Create session

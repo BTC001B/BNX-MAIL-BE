@@ -71,6 +71,16 @@ public class JwtUtil {
         return generateToken(claims, username, jwtExpiration);
     }
 
+    public String generateTokenForUser(com.btctech.mailapp.entity.User user, String identifier) {
+        Map<String, Object> claims = new HashMap<>();
+        if (Boolean.TRUE.equals(user.getIsSubId()) && user.getParent() != null) {
+            claims.put("is_sub_id", true);
+            claims.put("parent_account", user.getParent().getUsername());
+        }
+        claims.put("app_name", "BNX Mail");
+        return generateToken(claims, identifier, jwtExpiration);
+    }
+
     public String generateRefreshToken(String username) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("app_name", "BNX Mail");

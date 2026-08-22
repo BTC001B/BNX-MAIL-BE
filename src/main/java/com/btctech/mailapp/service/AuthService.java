@@ -347,7 +347,7 @@ public class AuthService {
                 .map(this::verifyExpiration)
                 .map(RefreshToken::getUser)
                 .map(user -> {
-                    String accessToken = jwtUtil.generateToken(user.getEmail());
+                    String accessToken = jwtUtil.generateTokenForUser(user, user.getEmail());
                     
                     // ✅ FIX: Migrate password session to new access token
                     try {

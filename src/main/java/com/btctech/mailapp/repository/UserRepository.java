@@ -4,12 +4,15 @@ import com.btctech.mailapp.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import java.util.Optional;
+import java.util.List;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"organization"})
     Optional<User> findByUsername(String username);
 
     boolean existsByUsername(String username);
+
+    List<User> findByParent(User parent);
 
     // Find user by email (joining with MailAccount)
     @Query("SELECT u FROM User u JOIN MailAccount m ON u.id = m.userId WHERE m.email = :email")

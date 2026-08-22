@@ -40,13 +40,18 @@ public class User {
     @Column(name = "account_type", length = 20)
     private AccountType accountType = AccountType.PUBLIC;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organization_id")
     private Organization organization;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_user_id")
     private User parent;
+
+    @Column(name = "is_sub_id")
+    private Boolean isSubId = false;
 
     @Column(name = "dob")
     private java.time.LocalDate dob;
