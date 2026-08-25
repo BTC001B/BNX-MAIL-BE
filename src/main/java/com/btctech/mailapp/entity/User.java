@@ -53,6 +53,11 @@ public class User {
     @Column(name = "is_sub_id")
     private Boolean isSubId = false;
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_permissions", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "permission_id")
+    private java.util.List<Integer> permissions = new java.util.ArrayList<>();
+
     @Column(name = "dob")
     private java.time.LocalDate dob;
 

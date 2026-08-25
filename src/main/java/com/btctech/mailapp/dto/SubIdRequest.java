@@ -17,4 +17,6 @@ public class SubIdRequest {
 
     @NotBlank(message = "Account Type is required (PERSONAL or BUSINESS)")
     private String accountType; // "PERSONAL" or "BUSINESS"
+    
+    private java.util.List<Integer> permissions;
 }

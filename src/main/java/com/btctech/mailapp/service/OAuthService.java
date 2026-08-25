@@ -130,6 +130,10 @@ public class OAuthService {
                 parentEmail = user.getParent().getUsername() + "@bnxmail.com";
             }
             claims.put("parent_account", parentEmail);
+            
+            if (user.getPermissions() != null && !user.getPermissions().isEmpty()) {
+                claims.put("permissions", user.getPermissions());
+            }
         }
         
         return jwtUtil.generateTokenWithClaims(claims, data.email);

@@ -73,6 +73,10 @@ public class SubIdController {
             subId.setActive(true);
             subId.setApproved(true);
             
+            if (request.getPermissions() != null) {
+                subId.setPermissions(new java.util.ArrayList<>(request.getPermissions()));
+            }
+            
             userRepository.save(subId);
 
             // Create Mailbox for Sub-ID
