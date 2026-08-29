@@ -3,6 +3,8 @@ package com.btctech.mailapp.service;
 import com.btctech.mailapp.dto.cashfree.CashfreeCreateUrlRequest;
 import com.btctech.mailapp.dto.cashfree.CashfreeCreateUrlResponse;
 import com.btctech.mailapp.dto.cashfree.CashfreeStatusResponse;
+import com.btctech.mailapp.dto.cashfree.CashfreePanRequest;
+import com.btctech.mailapp.dto.cashfree.CashfreePanResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -64,6 +66,32 @@ public class CashfreeService {
         } catch (Exception e) {
             log.error("Error checking Cashfree status: {}", e.getMessage());
             throw new RuntimeException("Failed to check status: " + e.getMessage());
+        }
+    }
+
+    public CashfreePanResponse verifyPan(String pan, String name) {
+        String url = apiBaseUrl + "/pan";
+
+        CashfreePanRequest request = CashfreePanRequest.builder()
+                .pan(pan)
+                .name(name)
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("x-client-id", clientId);
+        headers.set("x-client-secret", clientSecret);
+        headers.set("x-api-version", "2023-12-18"); // Version required for PAN Verification
+
+        HttpEntity<CashfreePanRequest> entity = new HttpEntity<>(request, headers);
+
+        log.info("Calling Cashfree PAN Verification for PAN: {}", pan);
+        try {
+            ResponseEntity<CashfreePanResponse> response = restTemplate.postForEntity(url, entity, CashfreePanResponse.class);
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error calling Cashfree PAN API: {}", e.getMessage());
+            throw new RuntimeException("Cashfree API Error: " + e.getMessage());
         }
     }
 

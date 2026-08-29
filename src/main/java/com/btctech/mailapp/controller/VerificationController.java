@@ -66,6 +66,34 @@ public class VerificationController {
         }
     }
 
+    @PostMapping("/verify-pan/{emailId}")
+    public ResponseEntity<ApiResponse<String>> verifyPanAndPromote(
+            @PathVariable Long emailId,
+            @RequestBody com.btctech.mailapp.dto.cashfree.CashfreePanRequest panRequest,
+            @RequestHeader("Authorization") String authHeader) {
+
+        try {
+            String token = authHeader.substring(7);
+            String email = jwtUtil.extractEmail(token);
+            User user = userService.getUserByEmail(email);
+
+            if (user == null) {
+                return ResponseEntity.status(401).body(ApiResponse.error("User not found from token"));
+            }
+
+            boolean success = verificationService.verifyPanAndFinalize(user.getId(), emailId, panRequest.getPan(), panRequest.getName());
+
+            if (success) {
+                return ResponseEntity.ok(ApiResponse.success("Success", "PAN verified successfully. Email is now primary."));
+            } else {
+                return ResponseEntity.badRequest().body(ApiResponse.error("PAN Verification failed or invalid details."));
+            }
+        } catch (Exception e) {
+            log.error("Failed to verify PAN: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     /**
      * Webhook for Cashfree
      * Note: In a real app, you should verify the signature of the webhook.

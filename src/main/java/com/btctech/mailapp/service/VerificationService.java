@@ -79,4 +79,20 @@ public class VerificationService {
         log.info("Promoting email account {} to primary for user {}", session.getMailAccountId(), session.getUserId());
         mailboxService.setPrimaryEmail(session.getUserId(), session.getMailAccountId());
     }
+
+    @Transactional
+    public boolean verifyPanAndFinalize(Long userId, Long mailAccountId, String pan, String name) {
+        log.info("Initiating PAN verification for user {} and mailAccountId {}", userId, mailAccountId);
+        
+        com.btctech.mailapp.dto.cashfree.CashfreePanResponse cfResponse = cashfreeService.verifyPan(pan, name);
+        
+        if (cfResponse.isValid()) {
+            log.info("PAN Verification SUCCESS for user {}. Promoting email...", userId);
+            mailboxService.setPrimaryEmail(userId, mailAccountId);
+            return true;
+        } else {
+            log.warn("PAN Verification FAILED for user {}. Reason: {}", userId, cfResponse.getMessage());
+            return false;
+        }
+    }
 }
