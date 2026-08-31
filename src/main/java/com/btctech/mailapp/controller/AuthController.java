@@ -33,6 +33,7 @@ public class AuthController {
     private final com.btctech.mailapp.service.AuthService authService;
     private final com.btctech.mailapp.service.TwoFactorService twoFactorService;
     private final SystemSettingRepository systemSettingRepository;
+    private final com.btctech.mailapp.repository.BusinessProfileRepository businessProfileRepository;
 
     /**
      * STEP 1: Register user (username + password)
@@ -93,6 +94,12 @@ public class AuthController {
                 if (request.getCin() == null || request.getCin().trim().isEmpty()) {
                     return ResponseEntity.badRequest().body(ApiResponse.error("CIN is required"));
                 }
+                
+                // Fail fast if CIN already registered
+                if (businessProfileRepository.existsByCin(request.getCin())) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("This CIN is already verified with another business"));
+                }
+                
                 com.btctech.mailapp.dto.cashfree.CashfreeCinResponse response = 
                         com.btctech.mailapp.service.CashfreeService.class.cast(
                                 org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(
@@ -108,6 +115,11 @@ public class AuthController {
             } else if ("GSTIN".equalsIgnoreCase(request.getType())) {
                 if (request.getPan() == null || request.getGstin() == null) {
                     return ResponseEntity.badRequest().body(ApiResponse.error("PAN and GSTIN are required"));
+                }
+                
+                // Fail fast if GSTIN already registered
+                if (businessProfileRepository.existsByGstin(request.getGstin())) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("This GSTIN is already verified with another business"));
                 }
                 
                 // Fetch GSTINs for PAN

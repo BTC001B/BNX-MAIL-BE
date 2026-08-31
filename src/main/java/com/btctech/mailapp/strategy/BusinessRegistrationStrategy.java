@@ -101,7 +101,11 @@ public class BusinessRegistrationStrategy implements RegistrationStrategy {
             profile.setOnboarded(false);
         }
 
-        businessProfileRepository.save(profile);
+        try {
+            businessProfileRepository.save(profile);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new com.btctech.mailapp.exception.MailException("A business account with these verification details (CIN/GSTIN) already exists.");
+        }
 
         return user;
     }
