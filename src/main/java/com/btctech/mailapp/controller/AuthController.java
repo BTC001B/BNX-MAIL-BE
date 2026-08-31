@@ -83,6 +83,71 @@ public class AuthController {
     }
 
     /**
+     * Public endpoint to verify business details (CIN or GSTIN) before registration
+     */
+    @PostMapping("/verify-business")
+    public ResponseEntity<ApiResponse<?>> verifyBusiness(@RequestBody VerifyBusinessRequest request) {
+        log.info("Verifying business type: {}", request.getType());
+        try {
+            if ("CIN".equalsIgnoreCase(request.getType())) {
+                if (request.getCin() == null || request.getCin().trim().isEmpty()) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("CIN is required"));
+                }
+                com.btctech.mailapp.dto.cashfree.CashfreeCinResponse response = 
+                        com.btctech.mailapp.service.CashfreeService.class.cast(
+                                org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(
+                                    ((org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes()).getRequest().getServletContext()
+                                ).getBean(com.btctech.mailapp.service.CashfreeService.class)
+                        ).verifyCin(request.getCin(), java.util.UUID.randomUUID().toString());
+                
+                if ("VALID".equalsIgnoreCase(response.getStatus())) {
+                    return ResponseEntity.ok(ApiResponse.success(response, "CIN verified successfully"));
+                } else {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("Invalid CIN provided"));
+                }
+            } else if ("GSTIN".equalsIgnoreCase(request.getType())) {
+                if (request.getPan() == null || request.getGstin() == null) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("PAN and GSTIN are required"));
+                }
+                
+                // Fetch GSTINs for PAN
+                com.btctech.mailapp.dto.cashfree.CashfreePanToGstinResponse gstinResponse = 
+                        com.btctech.mailapp.service.CashfreeService.class.cast(
+                                org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(
+                                    ((org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes()).getRequest().getServletContext()
+                                ).getBean(com.btctech.mailapp.service.CashfreeService.class)
+                        ).getGstinByPan(request.getPan(), java.util.UUID.randomUUID().toString());
+                
+                if ("VALID".equalsIgnoreCase(gstinResponse.getStatus())) {
+                    boolean found = false;
+                    for (com.btctech.mailapp.dto.cashfree.GstinData data : gstinResponse.getGstinList()) {
+                        if (data.getGstin().equalsIgnoreCase(request.getGstin())) {
+                            if ("Active".equalsIgnoreCase(data.getStatus())) {
+                                found = true;
+                                break;
+                            } else {
+                                return ResponseEntity.badRequest().body(ApiResponse.error("The provided GSTIN is not active"));
+                            }
+                        }
+                    }
+                    if (found) {
+                        return ResponseEntity.ok(ApiResponse.success(gstinResponse, "GSTIN verified successfully against PAN"));
+                    } else {
+                        return ResponseEntity.badRequest().body(ApiResponse.error("The provided GSTIN does not match the provided PAN"));
+                    }
+                } else {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("Failed to verify PAN or PAN is invalid"));
+                }
+            } else {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Invalid verification type"));
+            }
+        } catch (Exception e) {
+            log.error("Business verification failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.error("Verification failed: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Generate username suggestions based on name and DOB
      */
     @GetMapping("/username-suggestions")

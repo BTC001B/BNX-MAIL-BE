@@ -22,6 +22,15 @@ public class BusinessProfile {
     @Column(name = "business_type")
     private String businessType;
 
+    @Column(name = "business_flow", length = 20)
+    private String businessFlow; // 'primary' or 'secondary'
+
+    @Column(name = "cin", length = 30, unique = true)
+    private String cin;
+
+    @Column(name = "gstin", length = 30, unique = true)
+    private String gstin;
+
     @Column(name = "registration_number")
     private String registrationNumber;
 

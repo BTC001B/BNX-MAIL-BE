@@ -148,6 +148,32 @@ public class CashfreeService {
         }
     }
 
+    public com.btctech.mailapp.dto.cashfree.CashfreeCinResponse verifyCin(String cin, String verificationId) {
+        String url = apiBaseUrl + "/cin";
+
+        com.btctech.mailapp.dto.cashfree.CashfreeCinRequest request = com.btctech.mailapp.dto.cashfree.CashfreeCinRequest.builder()
+                .cin(cin)
+                .verificationId(verificationId)
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("x-client-id", clientId);
+        headers.set("x-client-secret", clientSecret);
+        headers.set("x-api-version", "2023-12-18");
+
+        HttpEntity<com.btctech.mailapp.dto.cashfree.CashfreeCinRequest> entity = new HttpEntity<>(request, headers);
+
+        log.info("Calling Cashfree CIN Verification for CIN: {}", cin);
+        try {
+            ResponseEntity<com.btctech.mailapp.dto.cashfree.CashfreeCinResponse> response = restTemplate.postForEntity(url, entity, com.btctech.mailapp.dto.cashfree.CashfreeCinResponse.class);
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error calling Cashfree CIN Verification API: {}", e.getMessage());
+            throw new RuntimeException("Cashfree API Error: " + e.getMessage());
+        }
+    }
+
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

@@ -75,6 +75,26 @@ public class BusinessRegistrationStrategy implements RegistrationStrategy {
         profile.setBusinessName(request.getBusinessName());
         profile.setBusinessType(request.getBusinessType());
         profile.setRegistrationNumber(request.getRegistrationNumber());
+        
+        // Primary vs Secondary Flow
+        if ("primary".equalsIgnoreCase(request.getBusinessFlow())) {
+            profile.setBusinessFlow("primary");
+            profile.setCompanySize(request.getBusinessSize());
+            profile.setIndustry(request.getIndustry());
+            profile.setCin(request.getCin());
+            profile.setGstin(request.getGstin());
+            // No temporary login for primary; they provide all details upfront
+            profile.setOnboarded(true);
+            
+            // Also store gstin on User entity for generic verification if needed
+            if (request.getGstin() != null) {
+                user.setGstin(request.getGstin());
+                userRepository.save(user);
+            }
+        } else {
+            profile.setBusinessFlow("secondary");
+            profile.setOnboarded(false);
+        }
 
         businessProfileRepository.save(profile);
 

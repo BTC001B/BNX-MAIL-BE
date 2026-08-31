@@ -30,4 +30,11 @@ public class RegisterRequest {
     private String ownerFirstName;
     private String ownerLastName;
     private String domain; // Required for business to set up org
+
+    // Primary Business flow fields
+    private String businessFlow; // 'primary' or 'secondary'
+    private String businessSize; // 'small' or 'large'
+    private String industry;
+    private String cin;
+    private String gstin;
 }
