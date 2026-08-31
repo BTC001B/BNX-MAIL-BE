@@ -22,4 +22,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     org.springframework.data.domain.Page<User> searchUsers(@org.springframework.data.repository.query.Param("query") String query, org.springframework.data.domain.Pageable pageable);
 
     org.springframework.data.domain.Page<User> findByActiveFalse(org.springframework.data.domain.Pageable pageable);
+
+    Optional<User> findByPanNumber(String panNumber);
 }

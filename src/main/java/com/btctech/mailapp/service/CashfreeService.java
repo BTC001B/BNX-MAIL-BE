@@ -95,6 +95,59 @@ public class CashfreeService {
         }
     }
 
+    public com.btctech.mailapp.dto.cashfree.CashfreePanAdvanceResponse verifyPanAdvance(String pan, String verificationId, String name) {
+        String url = apiBaseUrl + "/pan/advance";
+
+        com.btctech.mailapp.dto.cashfree.CashfreePanAdvanceRequest request = com.btctech.mailapp.dto.cashfree.CashfreePanAdvanceRequest.builder()
+                .pan(pan)
+                .verificationId(verificationId)
+                .name(name)
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("x-client-id", clientId);
+        headers.set("x-client-secret", clientSecret);
+        headers.set("x-api-version", "2023-12-18"); 
+
+        HttpEntity<com.btctech.mailapp.dto.cashfree.CashfreePanAdvanceRequest> entity = new HttpEntity<>(request, headers);
+
+        log.info("Calling Cashfree PAN Advance for PAN: {}", pan);
+        try {
+            ResponseEntity<com.btctech.mailapp.dto.cashfree.CashfreePanAdvanceResponse> response = restTemplate.postForEntity(url, entity, com.btctech.mailapp.dto.cashfree.CashfreePanAdvanceResponse.class);
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error calling Cashfree PAN Advance API: {}", e.getMessage());
+            throw new RuntimeException("Cashfree API Error: " + e.getMessage());
+        }
+    }
+
+    public com.btctech.mailapp.dto.cashfree.CashfreePanToGstinResponse getGstinByPan(String pan, String verificationId) {
+        String url = apiBaseUrl + "/pan-gstin";
+
+        com.btctech.mailapp.dto.cashfree.CashfreePanToGstinRequest request = com.btctech.mailapp.dto.cashfree.CashfreePanToGstinRequest.builder()
+                .pan(pan)
+                .verificationId(verificationId)
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("x-client-id", clientId);
+        headers.set("x-client-secret", clientSecret);
+        headers.set("x-api-version", "2023-12-18"); 
+
+        HttpEntity<com.btctech.mailapp.dto.cashfree.CashfreePanToGstinRequest> entity = new HttpEntity<>(request, headers);
+
+        log.info("Calling Cashfree PAN to GSTIN for PAN: {}", pan);
+        try {
+            ResponseEntity<com.btctech.mailapp.dto.cashfree.CashfreePanToGstinResponse> response = restTemplate.postForEntity(url, entity, com.btctech.mailapp.dto.cashfree.CashfreePanToGstinResponse.class);
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error calling Cashfree PAN to GSTIN API: {}", e.getMessage());
+            throw new RuntimeException("Cashfree API Error: " + e.getMessage());
+        }
+    }
+
     private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

@@ -10,14 +10,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CashfreePanRequest {
-
-    @JsonProperty("pan")
-    private String pan;
-
-    @JsonProperty("name")
-    private String name;
+public class GstinData {
 
     @JsonProperty("gstin")
     private String gstin;
+
+    @JsonProperty("status")
+    private String status;
+
+    @JsonProperty("state")
+    private String state;
 }

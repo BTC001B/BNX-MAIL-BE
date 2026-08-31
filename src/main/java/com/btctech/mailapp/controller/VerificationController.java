@@ -81,7 +81,7 @@ public class VerificationController {
                 return ResponseEntity.status(401).body(ApiResponse.error("User not found from token"));
             }
 
-            boolean success = verificationService.verifyPanAndFinalize(user.getId(), emailId, panRequest.getPan(), panRequest.getName());
+            boolean success = verificationService.verifyPanAndFinalize(user.getId(), emailId, panRequest.getPan(), panRequest.getName(), panRequest.getGstin());
 
             if (success) {
                 return ResponseEntity.ok(ApiResponse.success("Success", "PAN verified successfully. Email is now primary."));

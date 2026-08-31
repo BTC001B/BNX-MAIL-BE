@@ -114,6 +114,12 @@ public class User {
     @Column(name = "bio", length = 1000)
     private String bio;
     
+    @Column(name = "pan_number", length = 20, unique = true)
+    private String panNumber;
+
+    @Column(name = "gstin", length = 30, unique = true)
+    private String gstin;
+
     @PreUpdate
     public void preUpdate() {
         this.updatedAt = LocalDateTime.now();

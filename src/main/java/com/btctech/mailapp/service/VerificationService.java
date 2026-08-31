@@ -20,6 +20,7 @@ public class VerificationService {
     private final CashfreeService cashfreeService;
     private final VerificationSessionRepository sessionRepository;
     private final MailboxService mailboxService;
+    private final com.btctech.mailapp.repository.UserRepository userRepository;
 
     @Value("${app.frontend.redirect-url:https://www.b2auth.com/}")
     private String frontendRedirectUrl;
@@ -81,18 +82,83 @@ public class VerificationService {
     }
 
     @Transactional
-    public boolean verifyPanAndFinalize(Long userId, Long mailAccountId, String pan, String name) {
-        log.info("Initiating PAN verification for user {} and mailAccountId {}", userId, mailAccountId);
+    public boolean verifyPanAndFinalize(Long userId, Long mailAccountId, String pan, String name, String gstin) {
+        log.info("Initiating verification for user {} and mailAccountId {}", userId, mailAccountId);
         
-        com.btctech.mailapp.dto.cashfree.CashfreePanResponse cfResponse = cashfreeService.verifyPan(pan, name);
+        // 1. Check Uniqueness
+        java.util.Optional<com.btctech.mailapp.entity.User> existingUserOpt = userRepository.findByPanNumber(pan);
+        if (existingUserOpt.isPresent()) {
+            if (!existingUserOpt.get().getId().equals(userId)) {
+                log.warn("PAN Verification FAILED: PAN {} is already registered to another user", pan);
+                throw new RuntimeException("This PAN is already registered to another account.");
+            }
+        }
         
-        if (cfResponse.isValid()) {
-            log.info("PAN Verification SUCCESS for user {}. Promoting email...", userId);
-            mailboxService.setPrimaryEmail(userId, mailAccountId);
-            return true;
+        com.btctech.mailapp.entity.User currentUser = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (currentUser.getAccountType() == com.btctech.mailapp.entity.AccountType.BUSINESS) {
+            if (gstin == null || gstin.trim().isEmpty()) {
+                throw new RuntimeException("GSTIN is required for business accounts.");
+            }
+
+            // Call Cashfree PAN to GSTIN API
+            String verificationId = "pan_gstin_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+            com.btctech.mailapp.dto.cashfree.CashfreePanToGstinResponse cfResponse = cashfreeService.getGstinByPan(pan, verificationId);
+            
+            if ("SUCCESS".equalsIgnoreCase(cfResponse.getStatus()) && cfResponse.getGstinList() != null) {
+                boolean verified = false;
+                for (com.btctech.mailapp.dto.cashfree.GstinData data : cfResponse.getGstinList()) {
+                    if (data.getGstin().equalsIgnoreCase(gstin) && "ACTIVE".equalsIgnoreCase(data.getStatus())) {
+                        verified = true;
+                        break;
+                    }
+                }
+                
+                if (!verified) {
+                    throw new RuntimeException("The provided GSTIN is not valid or not active for this PAN.");
+                }
+
+                log.info("Business Verification SUCCESS for user {}.", userId);
+                currentUser.setPanNumber(pan);
+                currentUser.setGstin(gstin);
+                userRepository.save(currentUser);
+
+                mailboxService.setPrimaryEmail(userId, mailAccountId);
+                return true;
+            } else {
+                log.warn("GSTIN Verification FAILED for user {}. Reason: GSTIN_NOT_FOUND", userId);
+                throw new RuntimeException("Failed to verify GSTIN for the provided PAN.");
+            }
         } else {
-            log.warn("PAN Verification FAILED for user {}. Reason: {}", userId, cfResponse.getMessage());
-            return false;
+            // Call Cashfree PAN 360 API for Public
+            String verificationId = "pan_verify_" + UUID.randomUUID().toString().replace("-", "").substring(0, 20);
+            com.btctech.mailapp.dto.cashfree.CashfreePanAdvanceResponse cfResponse = cashfreeService.verifyPanAdvance(pan, verificationId, name);
+            
+            if ("VALID".equalsIgnoreCase(cfResponse.getStatus())) {
+                // 3. Name Matching Rule (Basic)
+                String registeredName = cfResponse.getRegisteredName() != null ? cfResponse.getRegisteredName() : cfResponse.getNamePanCard();
+                if (registeredName != null && name != null) {
+                    String normalizedProvided = name.replaceAll("\\s+", "").toLowerCase();
+                    String normalizedRegistered = registeredName.replaceAll("\\s+", "").toLowerCase();
+                    
+                    if (!normalizedRegistered.contains(normalizedProvided) && !normalizedProvided.contains(normalizedRegistered)) {
+                        log.warn("PAN Verification FAILED for user {}. Name mismatch. Provided: {}, Registered: {}", userId, name, registeredName);
+                        throw new RuntimeException("Name mismatch. Please ensure the name matches your PAN card.");
+                    }
+                }
+
+                log.info("PAN Verification SUCCESS for user {}. Updating PAN and promoting email...", userId);
+                
+                currentUser.setPanNumber(pan);
+                userRepository.save(currentUser);
+
+                mailboxService.setPrimaryEmail(userId, mailAccountId);
+                return true;
+            } else {
+                log.warn("PAN Verification FAILED for user {}. Reason: {}", userId, cfResponse.getMessage());
+                return false;
+            }
         }
     }
 }
