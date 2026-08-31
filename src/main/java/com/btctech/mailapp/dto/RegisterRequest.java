@@ -37,4 +37,9 @@ public class RegisterRequest {
     private String industry;
     private String cin;
     private String gstin;
+
+    // Detailed onboarding fields
+    private String companySize;
+    private String businessWebsite;
+    private String businessAddress;
 }

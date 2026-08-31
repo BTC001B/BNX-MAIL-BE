@@ -79,8 +79,13 @@ public class BusinessRegistrationStrategy implements RegistrationStrategy {
         // Primary vs Secondary Flow
         if ("primary".equalsIgnoreCase(request.getBusinessFlow())) {
             profile.setBusinessFlow("primary");
-            profile.setCompanySize(request.getBusinessSize());
+            // Set the detailed onboarding fields that were collected upfront
+            profile.setBusinessType(request.getBusinessType());
+            profile.setCompanySize(request.getCompanySize());
             profile.setIndustry(request.getIndustry());
+            profile.setBusinessWebsite(request.getBusinessWebsite());
+            profile.setBusinessAddress(request.getBusinessAddress());
+            
             profile.setCin(request.getCin());
             profile.setGstin(request.getGstin());
             // No temporary login for primary; they provide all details upfront
