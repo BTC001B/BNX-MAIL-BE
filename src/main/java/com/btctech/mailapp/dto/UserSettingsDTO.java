@@ -41,6 +41,11 @@ public class UserSettingsDTO {
     
     private Integer undoSendDelay;
     
+    private Boolean spellingCheckEnabled;
+    private Boolean grammarCheckEnabled;
+    private Boolean autoCorrectEnabled;
+    private Boolean smartComposeEnabled;
+    
     private String readingPaneMode;
 
     private List<String> casboxAccepted;

@@ -102,6 +102,109 @@ public class SettingsController {
         }
     }
 
+    @GetMapping("/composing")
+    public ResponseEntity<?> getComposingPreferences(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized"));
+        }
+
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            String identifier = jwtUtil.extractEmail(token);
+            User user = userService.getUserByEmailOrUsername(identifier);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "User not found"));
+            }
+
+            UserSettings settings = userService.getSettings(user);
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("spellingCheckEnabled", settings == null || settings.getSpellingCheckEnabled() == null || Boolean.TRUE.equals(settings.getSpellingCheckEnabled()));
+            response.put("grammarCheckEnabled", settings == null || settings.getGrammarCheckEnabled() == null || Boolean.TRUE.equals(settings.getGrammarCheckEnabled()));
+            response.put("autoCorrectEnabled", settings == null || settings.getAutoCorrectEnabled() == null || Boolean.TRUE.equals(settings.getAutoCorrectEnabled()));
+            response.put("smartComposeEnabled", settings == null || settings.getSmartComposeEnabled() == null || Boolean.TRUE.equals(settings.getSmartComposeEnabled()));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error retrieving composing preferences: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or expired token"));
+        }
+    }
+
+    @PutMapping("/composing")
+    public ResponseEntity<?> updateComposingPreferences(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody Map<String, Object> payload) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized"));
+        }
+
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            String identifier = jwtUtil.extractEmail(token);
+            User user = userService.getUserByEmailOrUsername(identifier);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "User not found"));
+            }
+
+            if (payload == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Invalid request body"));
+            }
+
+            if (hasInvalidBooleanType(payload, "spellingCheckEnabled") ||
+                hasInvalidBooleanType(payload, "grammarCheckEnabled") ||
+                hasInvalidBooleanType(payload, "autoCorrectEnabled") ||
+                hasInvalidBooleanType(payload, "smartComposeEnabled")) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Composing settings fields must be boolean values"));
+            }
+
+            Boolean spellingCheckEnabled = parseBoolean(payload.get("spellingCheckEnabled"));
+            Boolean grammarCheckEnabled = parseBoolean(payload.get("grammarCheckEnabled"));
+            Boolean autoCorrectEnabled = parseBoolean(payload.get("autoCorrectEnabled"));
+            Boolean smartComposeEnabled = parseBoolean(payload.get("smartComposeEnabled"));
+
+            UserSettings update = UserSettings.builder()
+                    .spellingCheckEnabled(spellingCheckEnabled)
+                    .grammarCheckEnabled(grammarCheckEnabled)
+                    .autoCorrectEnabled(autoCorrectEnabled)
+                    .smartComposeEnabled(smartComposeEnabled)
+                    .build();
+
+            UserSettings saved = userService.updateSettings(user, update);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("message", "Composing preferences updated successfully");
+            response.put("spellingCheckEnabled", Boolean.TRUE.equals(saved.getSpellingCheckEnabled()));
+            response.put("grammarCheckEnabled", Boolean.TRUE.equals(saved.getGrammarCheckEnabled()));
+            response.put("autoCorrectEnabled", Boolean.TRUE.equals(saved.getAutoCorrectEnabled()));
+            response.put("smartComposeEnabled", Boolean.TRUE.equals(saved.getSmartComposeEnabled()));
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error updating composing preferences: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or expired token"));
+        }
+    }
+
+    private Boolean parseBoolean(Object val) {
+        if (val instanceof Boolean) return (Boolean) val;
+        return null;
+    }
+
+    private boolean hasInvalidBooleanType(Map<String, Object> map, String key) {
+        if (!map.containsKey(key)) return false;
+        Object val = map.get(key);
+        return val != null && !(val instanceof Boolean);
+    }
+
     private String normalizeLanguageCode(String lang) {
         if (lang == null) return "en";
         switch (lang.toLowerCase()) {

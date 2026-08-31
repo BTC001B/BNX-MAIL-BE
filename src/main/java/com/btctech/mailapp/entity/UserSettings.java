@@ -73,6 +73,18 @@ public class UserSettings {
     @Builder.Default
     private Integer undoSendDelay = 0;
 
+    @Builder.Default
+    private Boolean spellingCheckEnabled = true;
+
+    @Builder.Default
+    private Boolean grammarCheckEnabled = true;
+
+    @Builder.Default
+    private Boolean autoCorrectEnabled = true;
+
+    @Builder.Default
+    private Boolean smartComposeEnabled = true;
+
     // Layout Settings
     @Builder.Default
     private String readingPaneMode = "no_split";
