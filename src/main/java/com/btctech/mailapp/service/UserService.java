@@ -77,6 +77,9 @@ public class UserService {
                                 .fontSize(1.0)
                                 .density("Default")
                                 .storageLimit(16106127360L)
+                                .fontFamily("Arial")
+                                .textStyleFontSize("Normal")
+                                .textColor("#000000")
                                 .build();
                         return userSettingsRepository.save(settings);
                     } catch (org.springframework.dao.DataIntegrityViolationException e) {
@@ -128,6 +131,9 @@ public class UserService {
         if (newSettings.getBiometricsEnabled() != null) existing.setBiometricsEnabled(newSettings.getBiometricsEnabled());
         if (newSettings.getLanguage() != null) existing.setLanguage(newSettings.getLanguage());
         if (newSettings.getReadingPaneMode() != null) existing.setReadingPaneMode(newSettings.getReadingPaneMode());
+        if (newSettings.getFontFamily() != null) existing.setFontFamily(newSettings.getFontFamily());
+        if (newSettings.getTextStyleFontSize() != null) existing.setTextStyleFontSize(newSettings.getTextStyleFontSize());
+        if (newSettings.getTextColor() != null) existing.setTextColor(newSettings.getTextColor());
         if (newSettings.getCasboxAccepted() != null) {
             if (existing.getCasboxAccepted() == null) {
                 existing.setCasboxAccepted(new java.util.ArrayList<>());

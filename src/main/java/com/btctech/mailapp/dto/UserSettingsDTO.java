@@ -48,5 +48,10 @@ public class UserSettingsDTO {
     
     private String readingPaneMode;
 
+    // Default Text Style Settings
+    private String fontFamily;
+    private String textStyleFontSize;
+    private String textColor;
+
     private List<String> casboxAccepted;
 }

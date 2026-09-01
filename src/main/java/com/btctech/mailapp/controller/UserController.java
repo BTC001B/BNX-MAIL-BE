@@ -186,6 +186,9 @@ public class UserController {
                 .twoFactorEnabled(user.getTwoFactorEnabled())
                 .biometricsEnabled(settings.getBiometricsEnabled())
                 .language(settings.getLanguage())
+                .fontFamily(settings.getFontFamily())
+                .textStyleFontSize(settings.getTextStyleFontSize())
+                .textColor(settings.getTextColor())
                 .casboxAccepted(settings.getCasboxAccepted())
                 .build();
                 
@@ -228,6 +231,9 @@ public class UserController {
                 .twoFactorEnabled(settingsUpdate.getTwoFactorEnabled())
                 .biometricsEnabled(settingsUpdate.getBiometricsEnabled())
                 .language(settingsUpdate.getLanguage())
+                .fontFamily(settingsUpdate.getFontFamily())
+                .textStyleFontSize(settingsUpdate.getTextStyleFontSize())
+                .textColor(settingsUpdate.getTextColor())
                 .casboxAccepted(settingsUpdate.getCasboxAccepted())
                 .build();
                 
@@ -266,6 +272,9 @@ public class UserController {
                 .twoFactorEnabled(saved.getTwoFactorEnabled())
                 .biometricsEnabled(saved.getBiometricsEnabled())
                 .language(saved.getLanguage())
+                .fontFamily(saved.getFontFamily())
+                .textStyleFontSize(saved.getTextStyleFontSize())
+                .textColor(saved.getTextColor())
                 .casboxAccepted(saved.getCasboxAccepted())
                 .build();
                 

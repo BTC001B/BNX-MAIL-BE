@@ -89,6 +89,19 @@ public class UserSettings {
     @Builder.Default
     private String readingPaneMode = "no_split";
 
+    // Default Text Style Settings
+    @Builder.Default
+    @Column(name = "font_family")
+    private String fontFamily = "Arial";
+
+    @Builder.Default
+    @Column(name = "text_style_font_size")
+    private String textStyleFontSize = "Normal";
+
+    @Builder.Default
+    @Column(name = "text_color")
+    private String textColor = "#000000";
+
     // Casbox Settings
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_casbox_accepted", joinColumns = @JoinColumn(name = "user_settings_id"))

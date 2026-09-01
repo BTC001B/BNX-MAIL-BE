@@ -1,6 +1,8 @@
 package com.btctech.mailapp.controller;
 
 import com.btctech.mailapp.config.JwtUtil;
+import com.btctech.mailapp.dto.DefaultTextStyleRequest;
+import com.btctech.mailapp.dto.DefaultTextStyleResponse;
 import com.btctech.mailapp.entity.User;
 import com.btctech.mailapp.entity.UserSettings;
 import com.btctech.mailapp.service.UserService;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RestController
@@ -25,6 +28,16 @@ public class SettingsController {
         "en", "ta", "hi", "te", "ml", "kn",
         "en_US", "ta_IN", "hi_IN", "te_IN", "ml_IN", "kn_IN"
     ));
+
+    private static final Set<String> SUPPORTED_FONT_FAMILIES = new HashSet<>(Arrays.asList(
+        "Arial", "Calibri", "Times New Roman", "Georgia", "Verdana", "Courier New", "Tahoma", "Trebuchet MS"
+    ));
+
+    private static final Set<String> SUPPORTED_FONT_SIZES = new HashSet<>(Arrays.asList(
+        "Small", "Normal", "Large", "Extra Large"
+    ));
+
+    private static final Pattern HEX_COLOR_PATTERN = Pattern.compile("^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$");
 
     @GetMapping("/language")
     public ResponseEntity<?> getLanguagePreference(@RequestHeader(value = "Authorization", required = false) String authHeader) {
@@ -227,6 +240,107 @@ public class SettingsController {
             case "en_us":
             default:
                 return "en";
+        }
+    }
+
+    @GetMapping("/text-style")
+    public ResponseEntity<?> getDefaultTextStyle(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized"));
+        }
+
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            String identifier = jwtUtil.extractEmail(token);
+            User user = userService.getUserByEmailOrUsername(identifier);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "User not found"));
+            }
+
+            UserSettings settings = userService.getSettings(user);
+            String fontFamily = (settings != null && settings.getFontFamily() != null) ? settings.getFontFamily() : "Arial";
+            String fontSize = (settings != null && settings.getTextStyleFontSize() != null) ? settings.getTextStyleFontSize() : "Normal";
+            String textColor = (settings != null && settings.getTextColor() != null) ? settings.getTextColor() : "#000000";
+
+            DefaultTextStyleResponse response = DefaultTextStyleResponse.builder()
+                    .fontFamily(fontFamily)
+                    .fontSize(fontSize)
+                    .textColor(textColor)
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error retrieving default text style: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or expired token"));
+        }
+    }
+
+    @PutMapping("/text-style")
+    public ResponseEntity<?> updateDefaultTextStyle(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody(required = false) DefaultTextStyleRequest payload) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized"));
+        }
+
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            String identifier = jwtUtil.extractEmail(token);
+            User user = userService.getUserByEmailOrUsername(identifier);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "User not found"));
+            }
+
+            if (payload == null) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Request body is required"));
+            }
+
+            String fontFamily = payload.getFontFamily();
+            String fontSize = payload.getFontSize();
+            String textColor = payload.getTextColor();
+
+            if (fontFamily == null || !SUPPORTED_FONT_FAMILIES.contains(fontFamily.trim())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Invalid font family"));
+            }
+
+            if (fontSize == null || !SUPPORTED_FONT_SIZES.contains(fontSize.trim())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Invalid font size"));
+            }
+
+            if (textColor == null || !HEX_COLOR_PATTERN.matcher(textColor.trim()).matches()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "Invalid text color"));
+            }
+
+            UserSettings update = UserSettings.builder()
+                    .fontFamily(fontFamily.trim())
+                    .textStyleFontSize(fontSize.trim())
+                    .textColor(textColor.trim())
+                    .build();
+
+            UserSettings saved = userService.updateSettings(user, update);
+
+            DefaultTextStyleResponse response = DefaultTextStyleResponse.builder()
+                    .fontFamily(saved.getFontFamily())
+                    .fontSize(saved.getTextStyleFontSize())
+                    .textColor(saved.getTextColor())
+                    .message("Default text style updated successfully")
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error updating default text style: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or expired token"));
         }
     }
 }
