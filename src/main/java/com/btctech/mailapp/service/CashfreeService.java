@@ -141,6 +141,7 @@ public class CashfreeService {
         log.info("Calling Cashfree PAN to GSTIN for PAN: {}", pan);
         try {
             ResponseEntity<com.btctech.mailapp.dto.cashfree.CashfreePanToGstinResponse> response = restTemplate.postForEntity(url, entity, com.btctech.mailapp.dto.cashfree.CashfreePanToGstinResponse.class);
+            log.info("Cashfree PAN-GSTIN raw response for PAN {}: {}", pan, new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(response.getBody()));
             return response.getBody();
         } catch (Exception e) {
             log.error("Error calling Cashfree PAN to GSTIN API: {}", e.getMessage());
