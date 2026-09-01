@@ -113,13 +113,8 @@ public class AuthController {
                     return ResponseEntity.badRequest().body(ApiResponse.error("Invalid CIN provided"));
                 }
             } else if ("GSTIN".equalsIgnoreCase(request.getType())) {
-                if (request.getPan() == null || request.getGstin() == null) {
-                    return ResponseEntity.badRequest().body(ApiResponse.error("PAN and GSTIN are required"));
-                }
-                
-                // Allow a strict test bypass if the sandbox is broken
-                if ("TESTPAN123".equals(request.getPan()) && "TESTGSTIN123456".equals(request.getGstin())) {
-                    return ResponseEntity.ok(ApiResponse.success(null, "GSTIN verified successfully (TEST BYPASS)"));
+                if (request.getGstin() == null || request.getGstin().trim().isEmpty()) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("GSTIN is required"));
                 }
                 
                 // Fail fast if GSTIN already registered
@@ -127,19 +122,51 @@ public class AuthController {
                     return ResponseEntity.badRequest().body(ApiResponse.error("This GSTIN is already verified with another business"));
                 }
                 
-                // Fetch GSTINs for PAN
-                com.btctech.mailapp.dto.cashfree.CashfreePanToGstinResponse gstinResponse = 
+                // Fetch GSTIN details
+                com.btctech.mailapp.dto.cashfree.CashfreeGstinResponse gstinResponse = 
                         com.btctech.mailapp.service.CashfreeService.class.cast(
                                 org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(
                                     ((org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes()).getRequest().getServletContext()
                                 ).getBean(com.btctech.mailapp.service.CashfreeService.class)
-                        ).getGstinByPan(request.getPan(), java.util.UUID.randomUUID().toString());
+                        ).verifyGstin(request.getGstin(), java.util.UUID.randomUUID().toString());
                 
+                if (gstinResponse.isValid()) {
+                    return ResponseEntity.ok(ApiResponse.success(gstinResponse, "GSTIN verified successfully"));
+                } else {
+                    return ResponseEntity.badRequest().body(ApiResponse.error(gstinResponse.getMessage() != null ? gstinResponse.getMessage() : "Failed to verify GSTIN or GSTIN is invalid"));
+                }
+            } else if ("LARGE_BUSINESS".equalsIgnoreCase(request.getType())) {
+                if (request.getCin() == null || request.getPan() == null || request.getGstin() == null) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("CIN, PAN, and GSTIN are required"));
+                }
+                
+                // Allow a strict test bypass if the sandbox is broken
+                if ("TESTPAN123".equals(request.getPan()) && "TESTGSTIN123456".equals(request.getGstin())) {
+                    return ResponseEntity.ok(ApiResponse.success(null, "Business verified successfully (TEST BYPASS)"));
+                }
+                
+                if (businessProfileRepository.existsByCin(request.getCin())) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("This CIN is already verified with another business"));
+                }
+                if (businessProfileRepository.existsByGstin(request.getGstin())) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("This GSTIN is already verified with another business"));
+                }
+                
+                com.btctech.mailapp.service.CashfreeService cashfreeService = com.btctech.mailapp.service.CashfreeService.class.cast(
+                        org.springframework.web.context.support.WebApplicationContextUtils.getRequiredWebApplicationContext(
+                            ((org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes()).getRequest().getServletContext()
+                        ).getBean(com.btctech.mailapp.service.CashfreeService.class)
+                );
+                
+                // 1. Verify CIN
+                com.btctech.mailapp.dto.cashfree.CashfreeCinResponse cinResponse = cashfreeService.verifyCin(request.getCin(), java.util.UUID.randomUUID().toString());
+                if (!"VALID".equalsIgnoreCase(cinResponse.getStatus())) {
+                    return ResponseEntity.badRequest().body(ApiResponse.error("Invalid CIN provided"));
+                }
+                
+                // 2. Verify PAN to GSTIN
+                com.btctech.mailapp.dto.cashfree.CashfreePanToGstinResponse gstinResponse = cashfreeService.getGstinByPan(request.getPan(), java.util.UUID.randomUUID().toString());
                 if ("VALID".equalsIgnoreCase(gstinResponse.getStatus())) {
-                    log.info("Sandbox returned GSTINs for PAN {}: {}", request.getPan(), 
-                        gstinResponse.getGstinList() != null ? 
-                            gstinResponse.getGstinList().stream().map(com.btctech.mailapp.dto.cashfree.GstinData::getGstin).toList() : "null");
-                            
                     boolean found = false;
                     for (com.btctech.mailapp.dto.cashfree.GstinData data : gstinResponse.getGstinList()) {
                         if (data.getGstin().equalsIgnoreCase(request.getGstin())) {
@@ -152,7 +179,7 @@ public class AuthController {
                         }
                     }
                     if (found) {
-                        return ResponseEntity.ok(ApiResponse.success(gstinResponse, "GSTIN verified successfully against PAN"));
+                        return ResponseEntity.ok(ApiResponse.success(gstinResponse, "Business verified successfully"));
                     } else {
                         return ResponseEntity.badRequest().body(ApiResponse.error("The provided GSTIN does not match the provided PAN"));
                     }

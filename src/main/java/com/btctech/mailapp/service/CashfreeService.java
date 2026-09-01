@@ -182,4 +182,29 @@ public class CashfreeService {
         headers.set("x-client-secret", clientSecret);
         return headers;
     }
+
+    public com.btctech.mailapp.dto.cashfree.CashfreeGstinResponse verifyGstin(String gstin, String verificationId) {
+        String url = apiBaseUrl + "/gstin";
+
+        com.btctech.mailapp.dto.cashfree.CashfreeGstinRequest request = com.btctech.mailapp.dto.cashfree.CashfreeGstinRequest.builder()
+                .gstin(gstin)
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("x-client-id", clientId);
+        headers.set("x-client-secret", clientSecret);
+        headers.set("x-api-version", "2023-12-18"); 
+
+        HttpEntity<com.btctech.mailapp.dto.cashfree.CashfreeGstinRequest> entity = new HttpEntity<>(request, headers);
+
+        log.info("Calling Cashfree GSTIN for GSTIN: {}", gstin);
+        try {
+            ResponseEntity<com.btctech.mailapp.dto.cashfree.CashfreeGstinResponse> response = restTemplate.postForEntity(url, entity, com.btctech.mailapp.dto.cashfree.CashfreeGstinResponse.class);
+            return response.getBody();
+        } catch (Exception e) {
+            log.error("Error calling Cashfree GSTIN API: {}", e.getMessage());
+            throw new RuntimeException("Cashfree API Error: " + e.getMessage());
+        }
+    }
 }
