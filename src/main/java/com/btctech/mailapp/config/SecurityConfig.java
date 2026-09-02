@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/mail/**").authenticated()
                         .requestMatchers("/api/chat/**").authenticated() // ✅ Added for chat system
                         .requestMatchers("/api/templates/**").authenticated() // ✅ Added for custom email templates
+                        .requestMatchers("/api/blocked-contacts/**").authenticated() // ✅ Blocked contacts API
 
                         // Any other request requires authentication
                         .anyRequest().authenticated())

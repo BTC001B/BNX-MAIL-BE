@@ -1,0 +1,153 @@
+package com.btctech.mailapp.service;
+
+import com.btctech.mailapp.dto.BlockedContactDTO;
+import com.btctech.mailapp.entity.BlockedContact;
+import com.btctech.mailapp.repository.BlockedContactRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.regex.Pattern;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class BlockedContactService {
+
+    private final BlockedContactRepository blockedContactRepository;
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile(
+            "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
+    );
+
+    /**
+     * Normalize email: trim leading/trailing whitespace and convert to lowercase.
+     */
+    public String normalizeEmail(String email) {
+        if (email == null) {
+            return null;
+        }
+        return email.trim().toLowerCase();
+    }
+
+    /**
+     * Validate email structure after normalization.
+     */
+    public boolean isValidEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return false;
+        }
+        String normalized = normalizeEmail(email);
+        return EMAIL_PATTERN.matcher(normalized).matches();
+    }
+
+    /**
+     * Block a sender address for a specific authenticated user.
+     */
+    @Transactional
+    public void blockSender(String userEmail, String rawSenderEmail) {
+        String normalizedUser = normalizeEmail(userEmail);
+        String normalizedSender = normalizeEmail(rawSenderEmail);
+
+        if (normalizedUser == null || normalizedUser.isEmpty()) {
+            throw new IllegalArgumentException("Authenticated user email is required");
+        }
+
+        if (!isValidEmail(normalizedSender)) {
+            throw new IllegalArgumentException("Invalid sender email address");
+        }
+
+        if (!blockedContactRepository.existsByUserEmailAndBlockedEmail(normalizedUser, normalizedSender)) {
+            BlockedContact contact = BlockedContact.builder()
+                    .userEmail(normalizedUser)
+                    .blockedEmail(normalizedSender)
+                    .blockedAt(LocalDateTime.now())
+                    .build();
+            blockedContactRepository.save(contact);
+            log.info("✓ Blocked sender '{}' for user '{}'", normalizedSender, normalizedUser);
+        } else {
+            log.info("Sender '{}' is already blocked for user '{}'", normalizedSender, normalizedUser);
+        }
+    }
+
+    /**
+     * Unblock a sender address for a specific authenticated user.
+     */
+    @Transactional
+    public void unblockSender(String userEmail, String rawSenderEmail) {
+        String normalizedUser = normalizeEmail(userEmail);
+        String normalizedSender = normalizeEmail(rawSenderEmail);
+
+        if (normalizedUser == null || normalizedUser.isEmpty()) {
+            throw new IllegalArgumentException("Authenticated user email is required");
+        }
+
+        if (normalizedSender == null || normalizedSender.isEmpty()) {
+            throw new IllegalArgumentException("Sender email address is required");
+        }
+
+        blockedContactRepository.deleteByUserEmailAndBlockedEmail(normalizedUser, normalizedSender);
+        log.info("✓ Unblocked sender '{}' for user '{}'", normalizedSender, normalizedUser);
+    }
+
+    /**
+     * Check whether a sender email is blocked for a user.
+     */
+    public boolean isSenderBlocked(String userEmail, String rawSenderEmail) {
+        String normalizedUser = normalizeEmail(userEmail);
+        String normalizedSender = normalizeEmail(rawSenderEmail);
+
+        if (normalizedUser == null || normalizedSender == null || normalizedSender.isEmpty()) {
+            return false;
+        }
+
+        return blockedContactRepository.existsByUserEmailAndBlockedEmail(normalizedUser, normalizedSender);
+    }
+
+    /**
+     * Get optional BlockedContact entity for a user and sender.
+     */
+    public Optional<BlockedContact> getBlockedContact(String userEmail, String rawSenderEmail) {
+        String normalizedUser = normalizeEmail(userEmail);
+        String normalizedSender = normalizeEmail(rawSenderEmail);
+
+        if (normalizedUser == null || normalizedSender == null) {
+            return Optional.empty();
+        }
+
+        return blockedContactRepository.findByUserEmailAndBlockedEmail(normalizedUser, normalizedSender);
+    }
+
+    /**
+     * Get all blocked contacts for a specific authenticated user.
+     */
+    public List<BlockedContactDTO> getBlockedContacts(String userEmail) {
+        String normalizedUser = normalizeEmail(userEmail);
+        if (normalizedUser == null || normalizedUser.isEmpty()) {
+            return List.of();
+        }
+
+        return blockedContactRepository.findByUserEmail(normalizedUser).stream()
+                .map(c -> new BlockedContactDTO(c.getBlockedEmail(), c.getBlockedAt()))
+                .toList();
+    }
+
+    /**
+     * Get raw list of blocked email strings for a user.
+     */
+    public List<String> getBlockedSenderEmails(String userEmail) {
+        String normalizedUser = normalizeEmail(userEmail);
+        if (normalizedUser == null || normalizedUser.isEmpty()) {
+            return List.of();
+        }
+
+        return blockedContactRepository.findByUserEmail(normalizedUser).stream()
+                .map(BlockedContact::getBlockedEmail)
+                .map(String::toLowerCase)
+                .toList();
+    }
+}

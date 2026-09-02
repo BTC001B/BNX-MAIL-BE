@@ -8,8 +8,12 @@ import com.btctech.mailapp.repository.MailLabelMappingRepository;
 import com.btctech.mailapp.entity.MailLabelMapping;
 
 
-import com.btctech.mailapp.entity.BlockedSender;
-import com.btctech.mailapp.repository.BlockedSenderRepository;
+import com.btctech.mailapp.entity.BlockedContact;
+import com.btctech.mailapp.repository.BlockedContactRepository;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Map;
+import java.util.HashMap;
 
 
 import com.btctech.mailapp.dto.EmailDTO;
@@ -53,7 +57,7 @@ public class MailReceiveService {
     private final StarredEmailRepository starredEmailRepository;
     private final SnoozedEmailRepository snoozedEmailRepository;
     private final MailLabelMappingRepository labelMappingRepository;
-    private final BlockedSenderRepository blockedSenderRepository;
+    private final BlockedContactRepository blockedContactRepository;
 
 
     /**
@@ -114,12 +118,11 @@ public class MailReceiveService {
 
             Message[] messages = folder.getMessages(startIndex, endIndex);
 
-            List<String> blockedEmails = new ArrayList<>();
+            Map<String, LocalDateTime> blockedMap = new HashMap<>();
             if ("INBOX".equalsIgnoreCase(folderName)) {
-                blockedEmails = blockedSenderRepository.findByUserEmail(email).stream()
-                        .map(BlockedSender::getBlockedEmail)
-                        .map(String::toLowerCase)
-                        .toList();
+                blockedContactRepository.findByUserEmail(email).forEach(c ->
+                    blockedMap.put(c.getBlockedEmail().toLowerCase(), c.getBlockedAt())
+                );
             }
 
             List<EmailDTO> emails = new ArrayList<>();
@@ -130,12 +133,30 @@ public class MailReceiveService {
                     if (subject != null && subject.toLowerCase().contains("[colab#")) {
                         continue;
                     }
-                    if ("INBOX".equalsIgnoreCase(folderName) && !blockedEmails.isEmpty()) {
+                    if ("INBOX".equalsIgnoreCase(folderName) && !blockedMap.isEmpty()) {
                         Address[] from = msg.getFrom();
                         if (from != null && from.length > 0) {
                             String cleanFrom = extractEmailAddress(from[0].toString());
-                            if (cleanFrom != null && blockedEmails.contains(cleanFrom.toLowerCase())) {
-                                continue;
+                            if (cleanFrom != null) {
+                                String cleanLower = cleanFrom.toLowerCase();
+                                if (blockedMap.containsKey(cleanLower)) {
+                                    LocalDateTime blockedAt = blockedMap.get(cleanLower);
+                                    java.util.Date sentDate = msg.getSentDate();
+                                    LocalDateTime msgTime = (sentDate != null) ?
+                                            sentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime() :
+                                            LocalDateTime.now();
+                                    if (!msgTime.isBefore(blockedAt)) {
+                                        try {
+                                            Folder spamFolder = store.getFolder(resolveSpamFolderName(store));
+                                            if (!spamFolder.exists()) spamFolder.create(Folder.HOLDS_MESSAGES);
+                                            folder.copyMessages(new Message[]{msg}, spamFolder);
+                                            msg.setFlag(Flags.Flag.DELETED, true);
+                                        } catch (Exception ex) {
+                                            log.warn("Could not move blocked message to Spam IMAP folder: {}", ex.getMessage());
+                                        }
+                                        continue;
+                                    }
+                                }
                             }
                         }
                     }
@@ -854,10 +875,10 @@ public class MailReceiveService {
             inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_ONLY);
 
-            List<String> blockedEmails = blockedSenderRepository.findByUserEmail(email).stream()
-                    .map(BlockedSender::getBlockedEmail)
-                    .map(String::toLowerCase)
-                    .toList();
+            Map<String, LocalDateTime> blockedMap = new HashMap<>();
+            blockedContactRepository.findByUserEmail(email).forEach(c ->
+                    blockedMap.put(c.getBlockedEmail().toLowerCase(), c.getBlockedAt())
+            );
 
             jakarta.mail.search.SearchTerm searchFlag = new jakarta.mail.search.FlagTerm(new Flags(Flags.Flag.SEEN), false);
             Message[] messages = inbox.search(searchFlag);
@@ -869,12 +890,22 @@ public class MailReceiveService {
                     if (subject != null && subject.toLowerCase().contains("[colab#")) {
                         continue;
                     }
-                    if (!blockedEmails.isEmpty()) {
+                    if (!blockedMap.isEmpty()) {
                         Address[] from = msg.getFrom();
                         if (from != null && from.length > 0) {
                             String cleanFrom = extractEmailAddress(from[0].toString());
-                            if (cleanFrom != null && blockedEmails.contains(cleanFrom.toLowerCase())) {
-                                continue;
+                            if (cleanFrom != null) {
+                                String cleanLower = cleanFrom.toLowerCase();
+                                if (blockedMap.containsKey(cleanLower)) {
+                                    LocalDateTime blockedAt = blockedMap.get(cleanLower);
+                                    java.util.Date sentDate = msg.getSentDate();
+                                    LocalDateTime msgTime = (sentDate != null) ?
+                                            sentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime() :
+                                            LocalDateTime.now();
+                                    if (!msgTime.isBefore(blockedAt)) {
+                                        continue;
+                                    }
+                                }
                             }
                         }
                     }
@@ -912,10 +943,10 @@ public class MailReceiveService {
 
             UIDFolder uidFolder = (folder instanceof UIDFolder) ? (UIDFolder) folder : null;
 
-            List<String> blockedEmails = blockedSenderRepository.findByUserEmail(email).stream()
-                    .map(BlockedSender::getBlockedEmail)
-                    .map(String::toLowerCase)
-                    .toList();
+            Map<String, LocalDateTime> blockedMap = new HashMap<>();
+            blockedContactRepository.findByUserEmail(email).forEach(c ->
+                    blockedMap.put(c.getBlockedEmail().toLowerCase(), c.getBlockedAt())
+            );
 
             // Search for unseen messages
             jakarta.mail.search.SearchTerm searchFlag = new jakarta.mail.search.FlagTerm(new Flags(Flags.Flag.SEEN), false);
@@ -933,12 +964,22 @@ public class MailReceiveService {
                     if (subject != null && subject.toLowerCase().contains("[colab#")) {
                         continue;
                     }
-                    if (!blockedEmails.isEmpty()) {
+                    if (!blockedMap.isEmpty()) {
                         Address[] from = msg.getFrom();
                         if (from != null && from.length > 0) {
                             String cleanFrom = extractEmailAddress(from[0].toString());
-                            if (cleanFrom != null && blockedEmails.contains(cleanFrom.toLowerCase())) {
-                                continue;
+                            if (cleanFrom != null) {
+                                String cleanLower = cleanFrom.toLowerCase();
+                                if (blockedMap.containsKey(cleanLower)) {
+                                    LocalDateTime blockedAt = blockedMap.get(cleanLower);
+                                    java.util.Date sentDate = msg.getSentDate();
+                                    LocalDateTime msgTime = (sentDate != null) ?
+                                            sentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime() :
+                                            LocalDateTime.now();
+                                    if (!msgTime.isBefore(blockedAt)) {
+                                        continue;
+                                    }
+                                }
                             }
                         }
                     }
@@ -1726,12 +1767,13 @@ public class MailReceiveService {
             throw new IllegalArgumentException("Invalid sender email address");
         }
         cleanEmail = cleanEmail.toLowerCase();
-        if (!blockedSenderRepository.existsByUserEmailAndBlockedEmail(userEmail, cleanEmail)) {
-            BlockedSender blocked = BlockedSender.builder()
+        if (!blockedContactRepository.existsByUserEmailAndBlockedEmail(userEmail, cleanEmail)) {
+            BlockedContact blocked = BlockedContact.builder()
                     .userEmail(userEmail)
                     .blockedEmail(cleanEmail)
+                    .blockedAt(LocalDateTime.now())
                     .build();
-            blockedSenderRepository.save(blocked);
+            blockedContactRepository.save(blocked);
         }
     }
 
@@ -1743,13 +1785,13 @@ public class MailReceiveService {
             throw new IllegalArgumentException("Invalid sender email address");
         }
         cleanEmail = cleanEmail.toLowerCase();
-        blockedSenderRepository.deleteByUserEmailAndBlockedEmail(userEmail, cleanEmail);
+        blockedContactRepository.deleteByUserEmailAndBlockedEmail(userEmail, cleanEmail);
     }
 
     public List<String> getBlockedSenders(String userEmail) {
         log.info("Fetching blocked senders for user {}", userEmail);
-        return blockedSenderRepository.findByUserEmail(userEmail).stream()
-                .map(BlockedSender::getBlockedEmail)
+        return blockedContactRepository.findByUserEmail(userEmail).stream()
+                .map(BlockedContact::getBlockedEmail)
                 .map(String::toLowerCase)
                 .toList();
     }
