@@ -72,7 +72,7 @@ public class UserService {
                                 .snoozedNotifications(true)
                                 .soundEnabled(true)
                                 .vibrationEnabled(true)
-                                .themeMode("System Default")
+                                .themeMode("Classic")
                                 .accentColor("#4F46E5")
                                 .fontSize(1.0)
                                 .density("Default")
@@ -121,6 +121,7 @@ public class UserService {
         if (newSettings.getAccentColor() != null) existing.setAccentColor(newSettings.getAccentColor());
         if (newSettings.getFontSize() != null) existing.setFontSize(newSettings.getFontSize());
         if (newSettings.getDensity() != null) existing.setDensity(newSettings.getDensity());
+        if (newSettings.getWallpaper() != null) existing.setWallpaper(newSettings.getWallpaper());
         if (newSettings.getUndoSendDelay() != null) existing.setUndoSendDelay(newSettings.getUndoSendDelay());
         if (newSettings.getSpellingCheckEnabled() != null) existing.setSpellingCheckEnabled(newSettings.getSpellingCheckEnabled());
         if (newSettings.getGrammarCheckEnabled() != null) existing.setGrammarCheckEnabled(newSettings.getGrammarCheckEnabled());
@@ -142,6 +143,16 @@ public class UserService {
             existing.getCasboxAccepted().addAll(newSettings.getCasboxAccepted());
         }
         
+        return userSettingsRepository.save(existing);
+    }
+
+    /**
+     * Reset ONLY the wallpaper preference to the application's default value for the user.
+     */
+    @Transactional
+    public UserSettings resetWallpaper(User user) {
+        UserSettings existing = getSettings(user);
+        existing.setWallpaper("default");
         return userSettingsRepository.save(existing);
     }
 

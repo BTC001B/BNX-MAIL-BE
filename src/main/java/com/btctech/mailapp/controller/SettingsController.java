@@ -343,4 +343,106 @@ public class SettingsController {
                     .body(Map.of("error", "Invalid or expired token"));
         }
     }
+
+    @GetMapping("/wallpaper")
+    public ResponseEntity<?> getWallpaperPreference(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized"));
+        }
+
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            String identifier = jwtUtil.extractEmail(token);
+            User user = userService.getUserByEmailOrUsername(identifier);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "User not found"));
+            }
+
+            UserSettings settings = userService.getSettings(user);
+            String wallpaper = (settings != null && settings.getWallpaper() != null) ? settings.getWallpaper() : "default";
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("wallpaper", wallpaper);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error retrieving wallpaper preference: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid or expired token"));
+        }
+    }
+
+    @PutMapping("/wallpaper")
+    public ResponseEntity<?> updateWallpaperPreference(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
+            @RequestBody(required = false) Map<String, String> payload) {
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized"));
+        }
+
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            String identifier = jwtUtil.extractEmail(token);
+            User user = userService.getUserByEmailOrUsername(identifier);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "User not found"));
+            }
+
+            String wallpaper = (payload != null && payload.get("wallpaper") != null) ? payload.get("wallpaper").trim() : "default";
+
+            UserSettings update = UserSettings.builder()
+                    .wallpaper(wallpaper)
+                    .build();
+
+            UserSettings saved = userService.updateSettings(user, update);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "Wallpaper updated successfully");
+            response.put("wallpaper", saved.getWallpaper() != null ? saved.getWallpaper() : "default");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error updating wallpaper preference: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "error", "Failed to update wallpaper preference: " + e.getMessage()));
+        }
+    }
+
+    @RequestMapping(value = "/wallpaper/reset", method = {RequestMethod.POST, RequestMethod.PUT})
+    public ResponseEntity<?> resetWallpaperToDefault(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Unauthorized"));
+        }
+
+        try {
+            String token = authHeader.replace("Bearer ", "");
+            String identifier = jwtUtil.extractEmail(token);
+            User user = userService.getUserByEmailOrUsername(identifier);
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "User not found"));
+            }
+
+            UserSettings saved = userService.resetWallpaper(user);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("success", true);
+            response.put("message", "Wallpaper reset to default");
+            response.put("wallpaper", saved.getWallpaper() != null ? saved.getWallpaper() : "default");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error resetting wallpaper preference: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "error", "Failed to reset wallpaper: " + e.getMessage()));
+        }
+    }
 }

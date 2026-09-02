@@ -49,13 +49,16 @@ public class UserSettings {
 
     // Appearance Settings
     @Builder.Default
-    private String themeMode = "System Default"; // Light, Dark, System Default
+    private String themeMode = "Classic";
     @Builder.Default
     private String accentColor = "#4F46E5"; // Default primary color
     @Builder.Default
     private Double fontSize = 1.0;
     @Builder.Default
     private String density = "Default"; // Compact, Default, Comfortable
+    @Builder.Default
+    @Column(name = "wallpaper")
+    private String wallpaper = "default";
 
     @Builder.Default
     private Long storageLimit = 16106127360L; // 15 GB in bytes

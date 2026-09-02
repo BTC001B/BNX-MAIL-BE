@@ -29,6 +29,7 @@ public class UserSettingsDTO {
     private String accentColor;
     private Double fontSize;
     private String density;
+    private String wallpaper;
     
     private String profilePictureUrl;
     
