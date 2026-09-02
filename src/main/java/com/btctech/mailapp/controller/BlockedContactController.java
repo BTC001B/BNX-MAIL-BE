@@ -1,5 +1,6 @@
 package com.btctech.mailapp.controller;
 
+import com.btctech.mailapp.config.JwtUtil;
 import com.btctech.mailapp.dto.ApiResponse;
 import com.btctech.mailapp.dto.BlockedContactDTO;
 import com.btctech.mailapp.service.BlockedContactService;
@@ -7,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +21,32 @@ import java.util.Map;
 public class BlockedContactController {
 
     private final BlockedContactService blockedContactService;
+    private final JwtUtil jwtUtil;
+
+    /**
+     * Robust user identity resolver across Authentication, SecurityContextHolder, and JWT fallback.
+     */
+    private String resolveUserEmail(Authentication authentication, String authHeader) {
+        if (authentication != null && authentication.getName() != null && !authentication.getName().trim().isEmpty()) {
+            return authentication.getName().trim();
+        }
+        Authentication contextAuth = SecurityContextHolder.getContext().getAuthentication();
+        if (contextAuth != null && contextAuth.getName() != null && !contextAuth.getName().trim().isEmpty()) {
+            return contextAuth.getName().trim();
+        }
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            try {
+                String token = authHeader.substring(7);
+                String email = jwtUtil.extractEmail(token);
+                if (email != null && !email.trim().isEmpty()) {
+                    return email.trim();
+                }
+            } catch (Exception e) {
+                log.debug("Could not extract email from JWT fallback: {}", e.getMessage());
+            }
+        }
+        return null;
+    }
 
     /**
      * Block a sender address for the authenticated user.
@@ -28,15 +56,15 @@ public class BlockedContactController {
     @PostMapping
     public ResponseEntity<ApiResponse<Void>> blockSender(
             @RequestBody Map<String, String> payload,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             Authentication authentication) {
         try {
-            if (authentication == null || authentication.getName() == null) {
+            String userEmail = resolveUserEmail(authentication, authHeader);
+            if (userEmail == null) {
                 return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized: User authentication required"));
             }
 
-            String userEmail = authentication.getName();
             String email = payload != null ? payload.get("email") : null;
-
             if (email == null || email.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("Email address is required"));
             }
@@ -58,13 +86,18 @@ public class BlockedContactController {
     @DeleteMapping("/{email}")
     public ResponseEntity<ApiResponse<Void>> unblockSender(
             @PathVariable String email,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             Authentication authentication) {
         try {
-            if (authentication == null || authentication.getName() == null) {
+            String userEmail = resolveUserEmail(authentication, authHeader);
+            if (userEmail == null) {
                 return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized: User authentication required"));
             }
 
-            String userEmail = authentication.getName();
+            if (email == null || email.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Email address is required"));
+            }
+
             blockedContactService.unblockSender(userEmail, email);
             return ResponseEntity.ok(ApiResponse.success(null, "Sender unblocked successfully"));
         } catch (IllegalArgumentException e) {
@@ -82,9 +115,11 @@ public class BlockedContactController {
     @GetMapping("/check")
     public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkBlockStatus(
             @RequestParam(required = false) String email,
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             Authentication authentication) {
         try {
-            if (authentication == null || authentication.getName() == null) {
+            String userEmail = resolveUserEmail(authentication, authHeader);
+            if (userEmail == null) {
                 return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized: User authentication required"));
             }
 
@@ -92,7 +127,6 @@ public class BlockedContactController {
                 return ResponseEntity.ok(ApiResponse.success(Map.of("blocked", false), "No email provided"));
             }
 
-            String userEmail = authentication.getName();
             boolean isBlocked = blockedContactService.isSenderBlocked(userEmail, email);
             return ResponseEntity.ok(ApiResponse.success(Map.of("blocked", isBlocked), "Block status retrieved"));
         } catch (Exception e) {
@@ -107,13 +141,14 @@ public class BlockedContactController {
      */
     @GetMapping
     public ResponseEntity<ApiResponse<List<BlockedContactDTO>>> getBlockedContacts(
+            @RequestHeader(value = "Authorization", required = false) String authHeader,
             Authentication authentication) {
         try {
-            if (authentication == null || authentication.getName() == null) {
+            String userEmail = resolveUserEmail(authentication, authHeader);
+            if (userEmail == null) {
                 return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized: User authentication required"));
             }
 
-            String userEmail = authentication.getName();
             List<BlockedContactDTO> contacts = blockedContactService.getBlockedContacts(userEmail);
             return ResponseEntity.ok(ApiResponse.success(contacts, "Blocked contacts fetched successfully"));
         } catch (Exception e) {

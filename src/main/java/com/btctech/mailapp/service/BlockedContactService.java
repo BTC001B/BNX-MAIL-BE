@@ -75,7 +75,7 @@ public class BlockedContactService {
             }
         } catch (Exception e) {
             log.error("Database error blocking sender '{}' for user '{}': {}", normalizedSender, normalizedUser, e.getMessage(), e);
-            throw new RuntimeException("Failed to save blocked contact: " + e.getMessage());
+            throw new RuntimeException("Failed to save blocked contact: " + e.getMessage(), e);
         }
     }
 
@@ -100,7 +100,7 @@ public class BlockedContactService {
             log.info("✓ Unblocked sender '{}' for user '{}'", normalizedSender, normalizedUser);
         } catch (Exception e) {
             log.error("Database error unblocking sender '{}' for user '{}': {}", normalizedSender, normalizedUser, e.getMessage(), e);
-            throw new RuntimeException("Failed to remove blocked contact: " + e.getMessage());
+            throw new RuntimeException("Failed to remove blocked contact: " + e.getMessage(), e);
         }
     }
 
@@ -160,7 +160,7 @@ public class BlockedContactService {
                     ))
                     .toList();
         } catch (Exception e) {
-            log.error("Database error retrieving blocked contacts for user '{}': {}", normalizedUser, e.getMessage());
+            log.error("Database error retrieving blocked contacts for user '{}': {}", normalizedUser, e.getMessage(), e);
             return List.of();
         }
     }
@@ -181,7 +181,7 @@ public class BlockedContactService {
                     .map(String::toLowerCase)
                     .toList();
         } catch (Exception e) {
-            log.error("Database error retrieving blocked sender emails for user '{}': {}", normalizedUser, e.getMessage());
+            log.error("Database error retrieving blocked sender emails for user '{}': {}", normalizedUser, e.getMessage(), e);
             return List.of();
         }
     }
