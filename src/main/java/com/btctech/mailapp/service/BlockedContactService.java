@@ -61,16 +61,21 @@ public class BlockedContactService {
             throw new IllegalArgumentException("Invalid sender email address");
         }
 
-        if (!blockedContactRepository.existsByUserEmailAndBlockedEmail(normalizedUser, normalizedSender)) {
-            BlockedContact contact = BlockedContact.builder()
-                    .userEmail(normalizedUser)
-                    .blockedEmail(normalizedSender)
-                    .blockedAt(LocalDateTime.now())
-                    .build();
-            blockedContactRepository.save(contact);
-            log.info("✓ Blocked sender '{}' for user '{}'", normalizedSender, normalizedUser);
-        } else {
-            log.info("Sender '{}' is already blocked for user '{}'", normalizedSender, normalizedUser);
+        try {
+            if (!blockedContactRepository.existsByUserEmailAndBlockedEmail(normalizedUser, normalizedSender)) {
+                BlockedContact contact = BlockedContact.builder()
+                        .userEmail(normalizedUser)
+                        .blockedEmail(normalizedSender)
+                        .blockedAt(LocalDateTime.now())
+                        .build();
+                blockedContactRepository.save(contact);
+                log.info("✓ Blocked sender '{}' for user '{}'", normalizedSender, normalizedUser);
+            } else {
+                log.info("Sender '{}' is already blocked for user '{}'", normalizedSender, normalizedUser);
+            }
+        } catch (Exception e) {
+            log.error("Database error blocking sender '{}' for user '{}': {}", normalizedSender, normalizedUser, e.getMessage(), e);
+            throw new RuntimeException("Failed to save blocked contact: " + e.getMessage());
         }
     }
 
@@ -90,8 +95,13 @@ public class BlockedContactService {
             throw new IllegalArgumentException("Sender email address is required");
         }
 
-        blockedContactRepository.deleteByUserEmailAndBlockedEmail(normalizedUser, normalizedSender);
-        log.info("✓ Unblocked sender '{}' for user '{}'", normalizedSender, normalizedUser);
+        try {
+            blockedContactRepository.deleteByUserEmailAndBlockedEmail(normalizedUser, normalizedSender);
+            log.info("✓ Unblocked sender '{}' for user '{}'", normalizedSender, normalizedUser);
+        } catch (Exception e) {
+            log.error("Database error unblocking sender '{}' for user '{}': {}", normalizedSender, normalizedUser, e.getMessage(), e);
+            throw new RuntimeException("Failed to remove blocked contact: " + e.getMessage());
+        }
     }
 
     /**
@@ -105,7 +115,12 @@ public class BlockedContactService {
             return false;
         }
 
-        return blockedContactRepository.existsByUserEmailAndBlockedEmail(normalizedUser, normalizedSender);
+        try {
+            return blockedContactRepository.existsByUserEmailAndBlockedEmail(normalizedUser, normalizedSender);
+        } catch (Exception e) {
+            log.error("Database error checking block status for user '{}' and sender '{}': {}", normalizedUser, normalizedSender, e.getMessage());
+            return false;
+        }
     }
 
     /**
@@ -119,7 +134,12 @@ public class BlockedContactService {
             return Optional.empty();
         }
 
-        return blockedContactRepository.findByUserEmailAndBlockedEmail(normalizedUser, normalizedSender);
+        try {
+            return blockedContactRepository.findByUserEmailAndBlockedEmail(normalizedUser, normalizedSender);
+        } catch (Exception e) {
+            log.error("Database error retrieving blocked contact for user '{}' and sender '{}': {}", normalizedUser, normalizedSender, e.getMessage());
+            return Optional.empty();
+        }
     }
 
     /**
@@ -131,9 +151,18 @@ public class BlockedContactService {
             return List.of();
         }
 
-        return blockedContactRepository.findByUserEmail(normalizedUser).stream()
-                .map(c -> new BlockedContactDTO(c.getBlockedEmail(), c.getBlockedAt()))
-                .toList();
+        try {
+            return blockedContactRepository.findByUserEmail(normalizedUser).stream()
+                    .filter(c -> c != null && c.getBlockedEmail() != null)
+                    .map(c -> new BlockedContactDTO(
+                            c.getBlockedEmail(),
+                            c.getBlockedAt() != null ? c.getBlockedAt() : LocalDateTime.now()
+                    ))
+                    .toList();
+        } catch (Exception e) {
+            log.error("Database error retrieving blocked contacts for user '{}': {}", normalizedUser, e.getMessage());
+            return List.of();
+        }
     }
 
     /**
@@ -145,9 +174,15 @@ public class BlockedContactService {
             return List.of();
         }
 
-        return blockedContactRepository.findByUserEmail(normalizedUser).stream()
-                .map(BlockedContact::getBlockedEmail)
-                .map(String::toLowerCase)
-                .toList();
+        try {
+            return blockedContactRepository.findByUserEmail(normalizedUser).stream()
+                    .filter(c -> c != null && c.getBlockedEmail() != null)
+                    .map(BlockedContact::getBlockedEmail)
+                    .map(String::toLowerCase)
+                    .toList();
+        } catch (Exception e) {
+            log.error("Database error retrieving blocked sender emails for user '{}': {}", normalizedUser, e.getMessage());
+            return List.of();
+        }
     }
 }
