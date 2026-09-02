@@ -81,18 +81,22 @@ public class BlockedContactController {
      */
     @GetMapping("/check")
     public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkBlockStatus(
-            @RequestParam String email,
+            @RequestParam(required = false) String email,
             Authentication authentication) {
         try {
             if (authentication == null || authentication.getName() == null) {
                 return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized: User authentication required"));
             }
 
+            if (email == null || email.trim().isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.success(Map.of("blocked", false), "No email provided"));
+            }
+
             String userEmail = authentication.getName();
             boolean isBlocked = blockedContactService.isSenderBlocked(userEmail, email);
             return ResponseEntity.ok(ApiResponse.success(Map.of("blocked", isBlocked), "Block status retrieved"));
         } catch (Exception e) {
-            log.error("Error checking block status: {}", e.getMessage(), e);
+            log.error("Error checking block status for email '{}': {}", email, e.getMessage(), e);
             return ResponseEntity.status(500).body(ApiResponse.error("Failed to check block status: " + e.getMessage()));
         }
     }
